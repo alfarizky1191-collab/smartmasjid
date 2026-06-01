@@ -6,6 +6,17 @@ import { supabase } from "@/lib/supabase/client";
 export default function TVPage() {
 
   // =========================
+  // MOSQUE ID FROM URL
+  // =========================
+
+  const [mosqueId, setMosqueId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setMosqueId(params.get("mosque_id"));
+  }, []);
+
+  // =========================
   // STATES
   // =========================
 
@@ -80,6 +91,8 @@ const [
   events,
   setEvents,
 ] = useState<any[]>([]);
+
+const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[]>([]);
     
 
   // =========================
@@ -178,6 +191,8 @@ const [
 
   useEffect(() => {
 
+    if (!mosqueId) return;
+
     const loadEvents =
       async () => {
 
@@ -195,6 +210,8 @@ const [
       .from("events")
 
       .select("*")
+
+      .eq("mosque_id", mosqueId)
 
       .gte(
         "event_date",
@@ -217,6 +234,20 @@ const [
     }
   };
 
+    const loadTodayOfficers = async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("officer_schedules")
+        .select("role, officers(name)")
+        .eq("mosque_id", mosqueId)
+        .eq("schedule_date", today);
+      if (data) {
+        setTodayOfficers(
+          data.map((d: any) => ({ role: d.role, name: d.officers?.name || "-" }))
+        );
+      }
+    };
+
     const loadDonations =
       async () => {
 
@@ -229,6 +260,8 @@ const [
           )
 
           .select("*")
+
+          .eq("mosque_id", mosqueId)
 
           .order(
             "created_at",
@@ -261,6 +294,8 @@ const [
 
           .select("*")
 
+          .eq("mosque_id", mosqueId)
+
           .single();
 
         if (
@@ -284,6 +319,8 @@ const [
 
           await loadEvents();
 
+          await loadTodayOfficers();
+
           // MOSQUE
           const {
             data:
@@ -294,15 +331,16 @@ const [
 
             .select("*")
 
-            .limit(1);
+            .eq("id", mosqueId)
+
+            .single();
 
           if (
-            mosqueData &&
-            mosqueData.length > 0
+            mosqueData
           ) {
 
             const mosqueItem =
-              mosqueData[0];
+              mosqueData;
 
             setMosque(
               mosqueItem
@@ -357,6 +395,8 @@ const {
 
   .select("*")
 
+  .eq("mosque_id", mosqueId)
+
   .order(
     "created_at",
     {
@@ -381,6 +421,8 @@ if (slidesData) {
             )
 
             .select("*")
+
+            .eq("mosque_id", mosqueId)
 
             .order(
               "created_at",
@@ -453,6 +495,8 @@ if (slidesData) {
               "public",
             table:
               "mosques",
+            filter:
+              `id=eq.${mosqueId}`,
           },
           async () => {
 
@@ -464,15 +508,16 @@ if (slidesData) {
 
               .select("*")
 
-              .limit(1);
+              .eq("id", mosqueId)
+
+              .single();
 
             if (
-              data &&
-              data.length > 0
+              data
             ) {
 
               setMosque(
-                data[0]
+                data
               );
             }
           }
@@ -500,6 +545,8 @@ if (slidesData) {
               "public",
             table:
               "announcements",
+            filter:
+              `mosque_id=eq.${mosqueId}`,
           },
           async () => {
 
@@ -512,6 +559,8 @@ if (slidesData) {
               )
 
               .select("*")
+
+              .eq("mosque_id", mosqueId)
 
               .order(
                 "created_at",
@@ -552,6 +601,8 @@ if (slidesData) {
               "public",
             table:
               "donations",
+            filter:
+              `mosque_id=eq.${mosqueId}`,
           },
           (payload) => {
 
@@ -606,6 +657,8 @@ if (slidesData) {
               "public",
             table:
               "events",
+            filter:
+              `mosque_id=eq.${mosqueId}`,
           },
           () => {
 
@@ -614,6 +667,22 @@ if (slidesData) {
         )
 
         .subscribe();
+
+    const officerChannel = supabase
+      .channel("officer-realtime")
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "officer_schedules",
+        filter: `mosque_id=eq.${mosqueId}`,
+      }, () => { loadTodayOfficers(); })
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "officers",
+        filter: `mosque_id=eq.${mosqueId}`,
+      }, () => { loadTodayOfficers(); })
+      .subscribe();
 
     return () => {
 
@@ -633,6 +702,10 @@ if (slidesData) {
         eventChannel
       );
 
+      supabase.removeChannel(
+        officerChannel
+      );
+
       if (
         donationPopupTimeoutRef.current
       ) {
@@ -643,7 +716,7 @@ if (slidesData) {
       }
     };
 
-  }, []);
+  }, [mosqueId]);
 
   // =========================
   // AUTO REFRESH JADWAL
@@ -1305,6 +1378,14 @@ for (
   // UI
   // =========================
 
+  if (!mosqueId) {
+    return (
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-2xl">
+        Mosque ID tidak ditemukan. Gunakan /tv?mosque_id=ID
+      </main>
+    );
+  }
+
   return (
 
     <main className={`
@@ -1737,6 +1818,26 @@ for (
 
 )}
 </div>
+
+      {/* PETUGAS HARI INI */}
+      <div className="bg-slate-900 rounded-3xl p-6">
+        <h2 className="text-4xl font-bold text-emerald-400 mb-6 text-center">
+          Petugas Hari Ini
+        </h2>
+        {todayOfficers.length === 0 ? (
+          <p className="text-2xl text-slate-400 text-center">Belum ada jadwal petugas hari ini</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {todayOfficers.map((o, i) => (
+              <div key={i} className="flex justify-between items-center bg-slate-800 rounded-2xl px-6 py-4">
+                <span className="text-2xl font-semibold text-yellow-400 capitalize">{o.role}</span>
+                <span className="text-2xl text-white">{o.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="bg-slate-900 rounded-3xl p-6">
 
         <h2 className="text-4xl font-bold text-emerald-400 mb-6 text-center">

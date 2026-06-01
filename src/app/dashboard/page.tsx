@@ -8,7 +8,7 @@ import AdminSidebar from "@/components/Adminsidebar";
 export default function DashboardPage() {
 
   const [email, setEmail] = useState("");
-  const [mosqueId, setMosqueId] = useState<number | null>(null);
+  const [mosqueId, setMosqueId] = useState<string | null>(null);
 
   const [mosqueName, setMosqueName] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -41,6 +41,17 @@ export default function DashboardPage() {
 
       setEmail(user.email || "");
 
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("mosque_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!profileData?.mosque_id) return;
+
+      const userMosqueId = profileData.mosque_id;
+      setMosqueId(userMosqueId);
+
       const {
         data: mosqueData,
       } = await supabase
@@ -49,13 +60,13 @@ export default function DashboardPage() {
 
         .select("*")
 
-        .limit(1);
+        .eq("id", userMosqueId)
 
-      if (mosqueData && mosqueData.length > 0) {
+        .single();
 
-        const mosque = mosqueData[0];
+      if (mosqueData) {
 
-        setMosqueId(mosque.id);
+        const mosque = mosqueData;
 
         setMosqueName(mosque.name || "");
 
@@ -145,6 +156,7 @@ export default function DashboardPage() {
 
         .insert({
           title: announcement,
+          mosque_id: mosqueId,
         });
 
       alert("Pengumuman berhasil ditambah");
@@ -289,6 +301,7 @@ export default function DashboardPage() {
       .insert([
         {
           image_url: data.publicUrl,
+          mosque_id: mosqueId,
         },
       ]);
 

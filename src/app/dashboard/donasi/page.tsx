@@ -10,6 +10,8 @@ import Adminsidebar from "@/components/Adminsidebar";
 
 export default function DonasiPage() {
 
+  const [mosqueId, setMosqueId] = useState<string | null>(null);
+
   const [
     qrisFile,
     setQrisFile,
@@ -73,7 +75,19 @@ export default function DonasiPage() {
 
   useEffect(() => {
 
-    loadDonations();
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("mosque_id")
+          .eq("id", user.id)
+          .single();
+        if (data) setMosqueId(data.mosque_id);
+      }
+      await loadDonations();
+    };
+    init();
 
     const donationChannel =
       supabase
@@ -151,12 +165,12 @@ export default function DonasiPage() {
 
   .upsert([
     {
-      id: 1,
+      mosque_id: mosqueId,
 
       image_url:
         publicUrl,
     },
-  ]);
+  ], { onConflict: "mosque_id" });
 
       alert(
         "QRIS berhasil upload"
@@ -180,6 +194,8 @@ export default function DonasiPage() {
             amount,
 
             note,
+
+            mosque_id: mosqueId,
           },
         ]);
 
@@ -204,6 +220,8 @@ export default function DonasiPage() {
             amount,
 
             note,
+
+            mosque_id: mosqueId,
           },
         ]);
 

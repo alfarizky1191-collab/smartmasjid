@@ -11,6 +11,8 @@ import AdminSidebar from "@/components/Adminsidebar";
 
 export default function EventsPage() {
 
+  const [mosqueId, setMosqueId] = useState<string | null>(null);
+
   const [title, setTitle] =
     useState("");
 
@@ -61,7 +63,19 @@ export default function EventsPage() {
 
   useEffect(() => {
 
-    loadEvents();
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("mosque_id")
+          .eq("id", user.id)
+          .single();
+        if (data) setMosqueId(data.mosque_id);
+      }
+      await loadEvents();
+    };
+    init();
 
     const eventChannel =
       supabase
@@ -131,6 +145,8 @@ export default function EventsPage() {
               eventTime,
 
             description,
+
+            mosque_id: mosqueId,
           },
         ]);
 

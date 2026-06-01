@@ -30,6 +30,8 @@ import Adminsidebar from "@/components/Adminsidebar";
 
 export default function FinancePage() {
 
+  const [mosqueId, setMosqueId] = useState<string | null>(null);
+
   const [type, setType] =
     useState("income");
 
@@ -81,7 +83,19 @@ export default function FinancePage() {
 
   useEffect(() => {
 
-    loadTransactions();
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("mosque_id")
+          .eq("id", user.id)
+          .single();
+        if (data) setMosqueId(data.mosque_id);
+      }
+      await loadTransactions();
+    };
+    init();
 
   }, []);
 
@@ -114,6 +128,7 @@ export default function FinancePage() {
             title,
             amount,
             note,
+            mosque_id: mosqueId,
           },
         ]);
 

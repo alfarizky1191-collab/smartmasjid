@@ -55,7 +55,7 @@ ALTER TABLE prayer_schedules DISABLE ROW LEVEL SECURITY;
 -- 4. DROP HELPER FUNCTION
 -- ============================================================
 
-DROP FUNCTION IF EXISTS auth.mosque_id();
+DROP FUNCTION IF EXISTS public.mosque_id();
 
 -- ============================================================
 -- 5. DROP mosque_id COLUMNS AND INDEXES

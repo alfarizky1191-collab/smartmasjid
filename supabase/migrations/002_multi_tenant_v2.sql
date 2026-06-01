@@ -153,13 +153,15 @@ ALTER TABLE donations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE qris_settings ENABLE ROW LEVEL SECURITY;
 
--- Helper: get current user's mosque_id
-CREATE OR REPLACE FUNCTION auth.mosque_id()
+-- Helper: get current user's mosque_id (public schema — auth schema is restricted)
+CREATE OR REPLACE FUNCTION public.mosque_id()
 RETURNS uuid
 LANGUAGE sql
 STABLE
+SECURITY DEFINER
+SET search_path = public
 AS $$
-  SELECT mosque_id FROM public.profiles WHERE id = auth.uid()
+  SELECT mosque_id FROM profiles WHERE id = auth.uid()
 $$;
 
 -- ----- DROP EXISTING POLICIES -----
@@ -186,8 +188,8 @@ CREATE POLICY "Public read mosques"
 
 CREATE POLICY "Admin manage own mosque"
   ON mosques FOR ALL
-  USING (id = auth.mosque_id())
-  WITH CHECK (id = auth.mosque_id());
+  USING (id = public.mosque_id())
+  WITH CHECK (id = public.mosque_id());
 
 -- ----- PROFILES -----
 CREATE POLICY "Users read own profile"
@@ -205,8 +207,8 @@ CREATE POLICY "Public read announcements"
 
 CREATE POLICY "Admin manage announcements"
   ON announcements FOR ALL
-  USING (mosque_id = auth.mosque_id())
-  WITH CHECK (mosque_id = auth.mosque_id());
+  USING (mosque_id = public.mosque_id())
+  WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- SLIDES -----
 CREATE POLICY "Public read slides"
@@ -214,8 +216,8 @@ CREATE POLICY "Public read slides"
 
 CREATE POLICY "Admin manage slides"
   ON slides FOR ALL
-  USING (mosque_id = auth.mosque_id())
-  WITH CHECK (mosque_id = auth.mosque_id());
+  USING (mosque_id = public.mosque_id())
+  WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- EVENTS -----
 CREATE POLICY "Public read events"
@@ -223,8 +225,8 @@ CREATE POLICY "Public read events"
 
 CREATE POLICY "Admin manage events"
   ON events FOR ALL
-  USING (mosque_id = auth.mosque_id())
-  WITH CHECK (mosque_id = auth.mosque_id());
+  USING (mosque_id = public.mosque_id())
+  WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- DONATIONS -----
 CREATE POLICY "Public read donations"
@@ -232,8 +234,8 @@ CREATE POLICY "Public read donations"
 
 CREATE POLICY "Admin manage donations"
   ON donations FOR ALL
-  USING (mosque_id = auth.mosque_id())
-  WITH CHECK (mosque_id = auth.mosque_id());
+  USING (mosque_id = public.mosque_id())
+  WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- TRANSACTIONS -----
 CREATE POLICY "Public read transactions"
@@ -241,8 +243,8 @@ CREATE POLICY "Public read transactions"
 
 CREATE POLICY "Admin manage transactions"
   ON transactions FOR ALL
-  USING (mosque_id = auth.mosque_id())
-  WITH CHECK (mosque_id = auth.mosque_id());
+  USING (mosque_id = public.mosque_id())
+  WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- QRIS_SETTINGS -----
 CREATE POLICY "Public read qris"
@@ -250,8 +252,8 @@ CREATE POLICY "Public read qris"
 
 CREATE POLICY "Admin manage qris"
   ON qris_settings FOR ALL
-  USING (mosque_id = auth.mosque_id())
-  WITH CHECK (mosque_id = auth.mosque_id());
+  USING (mosque_id = public.mosque_id())
+  WITH CHECK (mosque_id = public.mosque_id());
 
 -- ============================================================
 -- 8. AUTO-CREATE PROFILE ON SIGNUP
