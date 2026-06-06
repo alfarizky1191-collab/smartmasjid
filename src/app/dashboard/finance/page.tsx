@@ -28,6 +28,7 @@ import {
 
 import Adminsidebar from "@/components/Adminsidebar";
 import { formatIndonesianDateWithDay } from "@/lib/date-utils";
+import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
 
 export default function FinancePage() {
 
@@ -88,16 +89,20 @@ export default function FinancePage() {
 
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("mosque_id")
-          .eq("id", user.id)
-          .single();
-        if (data?.mosque_id) {
-          setMosqueId(data.mosque_id);
-          await loadTransactions(data.mosque_id);
+      if (!user) { window.location.href = "/login"; return; }
+      const { data } = await supabase
+        .from("profiles")
+        .select("mosque_id, role")
+        .eq("id", user.id)
+        .single();
+      if (data?.mosque_id) {
+        const userRole = isKnownRole(data.role) ? data.role : "super_admin";
+        if (!canAccess(userRole, "/dashboard/finance")) {
+          window.location.href = defaultRoute(userRole);
+          return;
         }
+        setMosqueId(data.mosque_id);
+        await loadTransactions(data.mosque_id);
       }
     };
     init();

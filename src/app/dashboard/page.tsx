@@ -4,6 +4,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import AdminSidebar from "@/components/Adminsidebar";
+import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
+import { extractStoragePath } from "@/lib/storage-utils";
 
 export default function DashboardPage() {
 
@@ -46,11 +48,17 @@ export default function DashboardPage() {
 
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("mosque_id")
+        .select("mosque_id, role")
         .eq("id", user.id)
         .single();
 
       if (!profileData?.mosque_id) return;
+
+      const userRole = isKnownRole(profileData.role) ? profileData.role : "super_admin";
+      if (!canAccess(userRole, "/dashboard")) {
+        window.location.href = defaultRoute(userRole);
+        return;
+      }
 
       const userMosqueId = profileData.mosque_id;
       setMosqueId(userMosqueId);
@@ -216,7 +224,7 @@ export default function DashboardPage() {
       return;
     }
 
-    const fileName = `${Date.now()}-${logoFile.name}`;
+    const fileName = `${mosqueId}/${Date.now()}-${logoFile.name}`;
 
     const {
       error: uploadError,
@@ -242,6 +250,11 @@ export default function DashboardPage() {
       .getPublicUrl(fileName);
 
     const publicUrl = data.publicUrl;
+
+    const oldPath = extractStoragePath(logoUrl, "mosque-assets", mosqueId!);
+    if (oldPath) {
+      await supabase.storage.from("mosque-assets").remove([oldPath]);
+    }
 
     await supabase
 
@@ -281,7 +294,7 @@ export default function DashboardPage() {
 
     if (!file) return;
 
-    const fileName = `${Date.now()}-${file.name}`;
+    const fileName = `${mosqueId}/${Date.now()}-${file.name}`;
 
     const {
       error: uploadError,
@@ -344,6 +357,12 @@ export default function DashboardPage() {
     );
 
     if (!confirmDelete) return;
+
+    const slide = slides.find((s) => s.id === id);
+    if (slide?.image_url && mosqueId) {
+      const path = extractStoragePath(slide.image_url, "slides", mosqueId);
+      if (path) await supabase.storage.from("slides").remove([path]);
+    }
 
     await supabase
 

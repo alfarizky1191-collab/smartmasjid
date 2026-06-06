@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase/client";
 import { formatIndonesianDateWithDay } from "@/lib/date-utils";
 
 import AdminSidebar from "@/components/Adminsidebar";
+import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
 
 export default function EventsPage() {
 
@@ -68,15 +69,20 @@ export default function EventsPage() {
 
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("mosque_id")
-          .eq("id", user.id)
-          .single();
-        if (data?.mosque_id) {
-          setMosqueId(data.mosque_id);
-          await loadEvents(data.mosque_id);
+      if (!user) { window.location.href = "/login"; return; }
+      const { data } = await supabase
+        .from("profiles")
+        .select("mosque_id, role")
+        .eq("id", user.id)
+        .single();
+      if (data?.mosque_id) {
+        const userRole = isKnownRole(data.role) ? data.role : "super_admin";
+        if (!canAccess(userRole, "/dashboard/events")) {
+          window.location.href = defaultRoute(userRole);
+          return;
+        }
+        setMosqueId(data.mosque_id);
+        await loadEvents(data.mosque_id);
 
           const eventChannel =
             supabase
@@ -95,7 +101,6 @@ export default function EventsPage() {
 
           return () => { supabase.removeChannel(eventChannel); };
         }
-      }
     };
     init();
 

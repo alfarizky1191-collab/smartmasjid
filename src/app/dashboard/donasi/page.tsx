@@ -7,6 +7,8 @@ import {
 
 import { supabase } from "@/lib/supabase/client";
 import Adminsidebar from "@/components/Adminsidebar";
+import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
+import { extractStoragePath } from "@/lib/storage-utils";
 
 export default function DonasiPage() {
 
@@ -79,15 +81,28 @@ export default function DonasiPage() {
 
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("mosque_id")
-          .eq("id", user.id)
+      if (!user) { window.location.href = "/login"; return; }
+      const { data } = await supabase
+        .from("profiles")
+        .select("mosque_id, role")
+        .eq("id", user.id)
+        .single();
+      if (data?.mosque_id) {
+        const userRole = isKnownRole(data.role) ? data.role : "super_admin";
+        if (!canAccess(userRole, "/dashboard/donasi")) {
+          window.location.href = defaultRoute(userRole);
+          return;
+        }
+        setMosqueId(data.mosque_id);
+        await loadDonations(data.mosque_id);
+
+        // Load existing QRIS URL so we can clean it up on replacement
+        const { data: qrisData } = await supabase
+          .from("qris_settings")
+          .select("image_url")
+          .eq("mosque_id", data.mosque_id)
           .single();
-        if (data?.mosque_id) {
-          setMosqueId(data.mosque_id);
-          await loadDonations(data.mosque_id);
+        if (qrisData?.image_url) setQrisUrl(qrisData.image_url);
 
           const donationChannel =
             supabase
@@ -106,7 +121,6 @@ export default function DonasiPage() {
 
           return () => { supabase.removeChannel(donationChannel); };
         }
-      }
     };
     init();
 
@@ -119,7 +133,7 @@ export default function DonasiPage() {
         return;
 
       const fileName =
-        `${Date.now()}-${qrisFile.name}`;
+        `${mosqueId}/${Date.now()}-${qrisFile.name}`;
 
       await supabase
 
@@ -147,6 +161,10 @@ export default function DonasiPage() {
       setQrisUrl(
         publicUrl
       );
+
+      const oldPath = extractStoragePath(qrisUrl, "qris", mosqueId!);
+      if (oldPath) await supabase.storage.from("qris").remove([oldPath]);
+
       await supabase
 
   .from(

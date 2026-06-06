@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import AdminSidebar from "@/components/Adminsidebar";
+import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
+import { extractStoragePath } from "@/lib/storage-utils";
 import {
   getProvinces,
   findProvinceByName,
@@ -51,11 +53,17 @@ export default function SettingsPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("mosque_id")
+        .select("mosque_id, role")
         .eq("id", user.id)
         .single();
 
       if (!profile?.mosque_id) { setLoading(false); return; }
+
+      const userRole = isKnownRole(profile.role) ? profile.role : "super_admin";
+      if (!canAccess(userRole, "/dashboard/settings")) {
+        window.location.href = defaultRoute(userRole);
+        return;
+      }
       setMosqueId(profile.mosque_id);
 
       // Fetch mosque profile. Some deployments may not have `postal_code` or `tagline` columns.
@@ -130,10 +138,12 @@ export default function SettingsPage() {
 
   const handleUploadLogo = async () => {
     if (!logoFile || !mosqueId) return;
-    const fileName = `${Date.now()}-${logoFile.name}`;
+    const fileName = `${mosqueId}/${Date.now()}-${logoFile.name}`;
     const { error } = await supabase.storage.from("mosque-assets").upload(fileName, logoFile);
     if (error) { alert(error.message); return; }
     const publicUrl = supabase.storage.from("mosque-assets").getPublicUrl(fileName).data.publicUrl;
+    const oldPath = extractStoragePath(logoUrl, "mosque-assets", mosqueId);
+    if (oldPath) await supabase.storage.from("mosque-assets").remove([oldPath]);
     await supabase.from("mosques").update({ logo_url: publicUrl }).eq("id", mosqueId);
     setLogoUrl(publicUrl);
     setLogoFile(null);

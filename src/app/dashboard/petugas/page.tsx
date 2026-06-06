@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import AdminSidebar from "@/components/Adminsidebar";
 import { formatIndonesianDateWithDay } from "@/lib/date-utils";
+import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
 
 interface Officer {
   id: string;
@@ -43,10 +44,15 @@ export default function PetugasPage() {
       if (!user) { window.location.href = "/login"; return; }
       const { data } = await supabase
         .from("profiles")
-        .select("mosque_id")
+        .select("mosque_id, role")
         .eq("id", user.id)
         .single();
       if (data?.mosque_id) {
+        const userRole = isKnownRole(data.role) ? data.role : "super_admin";
+        if (!canAccess(userRole, "/dashboard/petugas")) {
+          window.location.href = defaultRoute(userRole);
+          return;
+        }
         setMosqueId(data.mosque_id);
         await loadOfficers(data.mosque_id);
         await loadSchedules(data.mosque_id);
