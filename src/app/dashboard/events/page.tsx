@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import { supabase } from "@/lib/supabase/client";
+import { formatIndonesianDateWithDay } from "@/lib/date-utils";
 
 import AdminSidebar from "@/components/Adminsidebar";
 
@@ -308,6 +309,10 @@ export default function EventsPage() {
 
             <div className="flex flex-col gap-4">
 
+              {events.length === 0 && (
+                <p className="text-slate-400">Belum ada event.</p>
+              )}
+
               {events.map(
                 (item) => (
 
@@ -338,11 +343,7 @@ export default function EventsPage() {
 
                       <p className="text-slate-500 mt-2">
 
-                        {new Date(
-                          item.event_date
-                        ).toLocaleDateString(
-                          "id-ID"
-                        )}
+                        {formatIndonesianDateWithDay(item.event_date)}
 
                         {" • "}
 

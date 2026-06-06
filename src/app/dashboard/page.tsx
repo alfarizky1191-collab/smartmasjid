@@ -9,6 +9,7 @@ export default function DashboardPage() {
 
   const [email, setEmail] = useState("");
   const [mosqueId, setMosqueId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [mosqueName, setMosqueName] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -23,6 +24,8 @@ export default function DashboardPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const [slides, setSlides] = useState<any[]>([]);
+  const [eventCount, setEventCount] = useState(0);
+  const [officerCount, setOfficerCount] = useState(0);
 
   useEffect(() => {
 
@@ -99,9 +102,18 @@ export default function DashboardPage() {
       }
 
       loadAnnouncements();
+
+      // Summary counts
+      const { count: evCount } = await supabase
+        .from("events").select("*", { count: "exact", head: true });
+      if (evCount !== null) setEventCount(evCount);
+
+      const { count: offCount } = await supabase
+        .from("officers").select("*", { count: "exact", head: true });
+      if (offCount !== null) setOfficerCount(offCount);
     };
 
-    getData();
+    getData().finally(() => setLoading(false));
 
   }, []);
 
@@ -355,6 +367,23 @@ export default function DashboardPage() {
     window.location.href = "/login";
   };
 
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white flex">
+        <AdminSidebar />
+        <div className="flex-1 p-6">
+          <div className="max-w-6xl mx-auto space-y-4">
+            <div className="h-28 bg-slate-900 rounded-3xl animate-pulse" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-slate-900 rounded-xl animate-pulse" />)}
+            </div>
+            <div className="h-48 bg-slate-900 rounded-3xl animate-pulse" />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
 
   <main className="min-h-screen bg-slate-950 text-white flex">
@@ -393,6 +422,26 @@ export default function DashboardPage() {
 
           </div>
 
+        </div>
+
+        {/* SUMMARY CARDS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p className="text-sm text-slate-400">Pengumuman</p>
+            <p className="text-2xl font-bold text-emerald-400">{announcements.length}</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p className="text-sm text-slate-400">Slides</p>
+            <p className="text-2xl font-bold text-emerald-400">{slides.length}</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p className="text-sm text-slate-400">Total Event</p>
+            <p className="text-2xl font-bold text-emerald-400">{eventCount}</p>
+          </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p className="text-sm text-slate-400">Total Petugas</p>
+            <p className="text-2xl font-bold text-emerald-400">{officerCount}</p>
+          </div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-4">
@@ -486,6 +535,10 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-3 gap-4 mt-4">
 
+            {slides.length === 0 && (
+              <p className="text-slate-400 col-span-3">Belum ada slide.</p>
+            )}
+
             {slides.map((slide) => (
 
               <div
@@ -553,6 +606,10 @@ export default function DashboardPage() {
           <h2 className="text-3xl font-bold text-emerald-400">
             List Pengumuman
           </h2>
+
+          {announcements.length === 0 && (
+            <p className="text-slate-400">Belum ada pengumuman.</p>
+          )}
 
           {announcements.map((item) => (
 

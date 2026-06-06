@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import AdminSidebar from "@/components/Adminsidebar";
+import { formatIndonesianDateWithDay } from "@/lib/date-utils";
 
 interface Officer {
   id: string;
@@ -22,6 +23,7 @@ interface Schedule {
 
 export default function PetugasPage() {
   const [mosqueId, setMosqueId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
 
@@ -50,7 +52,7 @@ export default function PetugasPage() {
         await loadSchedules();
       }
     };
-    init();
+    init().finally(() => setLoading(false));
   }, []);
 
   const loadOfficers = async () => {
@@ -108,6 +110,20 @@ export default function PetugasPage() {
   };
 
   const activeOfficers = officers.filter((o) => o.is_active);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white flex">
+        <AdminSidebar />
+        <div className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto space-y-4">
+            <div className="h-10 w-56 bg-slate-800 rounded animate-pulse" />
+            {[...Array(3)].map((_, i) => <div key={i} className="h-32 bg-slate-900 rounded-xl animate-pulse" />)}
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white flex">
@@ -245,7 +261,7 @@ export default function PetugasPage() {
                   <tbody>
                     {schedules.map((s) => (
                       <tr key={s.id} className="border-b border-slate-800">
-                        <td className="py-2 px-3">{s.schedule_date}</td>
+                        <td className="py-2 px-3">{formatIndonesianDateWithDay(s.schedule_date)}</td>
                         <td className="py-2 px-3">{s.role}</td>
                         <td className="py-2 px-3">
                           {(s.officers as unknown as { name: string })?.name || "-"}

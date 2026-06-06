@@ -1,19 +1,163 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { formatIndonesianDateWithDay } from "@/lib/date-utils";
+
+type MosqueLookup = {
+  id: string | null;
+  slug: string | null;
+  isReady: boolean;
+  error: string | null;
+};
+
+const LOCATION_FALLBACK = "Lokasi belum diatur";
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const trimText = (value: unknown) =>
+  typeof value === "string" ? value.trim() : "";
+
+const getLocationLabel = (mosque: any) => {
+  const location = [
+    trimText(mosque?.city),
+    trimText(mosque?.province),
+  ].filter(Boolean);
+
+  return location.length > 0 ? location.join(", ") : LOCATION_FALLBACK;
+};
+
+const getTvSlugFromPath = (pathname: string) => {
+  const [basePath, slug] = pathname.split("/").filter(Boolean);
+  return basePath === "tv" && slug ? decodeURIComponent(slug) : "";
+};
+
+const getParam = (params: URLSearchParams, key: string) =>
+  params.get(key)?.trim() || "";
+
+const fetchPrayerTimesForCity = async (city: string) => {
+  const response = await fetch(
+    `https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(
+      city
+    )}&country=Indonesia&method=11`,
+    { cache: "no-store" }
+  );
+
+  if (!response.ok) {
+    throw new Error("Gagal memuat jadwal sholat");
+  }
+
+  const result = await response.json();
+  return result?.data?.timings || null;
+};
 
 export default function TVPage() {
 
   // =========================
-  // MOSQUE ID FROM URL
+  // MOSQUE FROM URL
   // =========================
 
   const [mosqueId, setMosqueId] = useState<string | null>(null);
+  const [mosqueLookup, setMosqueLookup] = useState<MosqueLookup>({
+    id: null,
+    slug: null,
+    isReady: false,
+    error: null,
+  });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setMosqueId(params.get("mosque_id"));
+    let isMounted = true;
+
+    const resolveMosque = async () => {
+      try {
+        localStorage.removeItem("mosque");
+        localStorage.removeItem("prayerTimes");
+
+        const params = new URLSearchParams(window.location.search);
+        const mosqueParam = getParam(params, "mosque");
+        const idParam =
+          getParam(params, "mosque_id") || getParam(params, "id");
+        const pathSlug = getTvSlugFromPath(window.location.pathname);
+        const slugParam =
+          pathSlug ||
+          getParam(params, "slug") ||
+          getParam(params, "mosque_slug") ||
+          (!idParam && mosqueParam && !UUID_PATTERN.test(mosqueParam)
+            ? mosqueParam
+            : "");
+        const idFromParam =
+          idParam ||
+          (mosqueParam && UUID_PATTERN.test(mosqueParam) ? mosqueParam : "");
+
+        if (slugParam) {
+          const { data, error } = await supabase
+            .from("mosques")
+            .select("id, slug")
+            .eq("slug", slugParam)
+            .maybeSingle();
+
+          if (!isMounted) return;
+
+          if (error || !data?.id) {
+            setMosqueId(null);
+            setMosqueLookup({
+              id: null,
+              slug: slugParam,
+              isReady: true,
+              error: "Masjid dengan slug ini tidak ditemukan.",
+            });
+            return;
+          }
+
+          setMosqueId(data.id);
+          setMosqueLookup({
+            id: data.id,
+            slug: data.slug || slugParam,
+            isReady: true,
+            error: null,
+          });
+          return;
+        }
+
+        if (idFromParam) {
+          setMosqueId(idFromParam);
+          setMosqueLookup({
+            id: idFromParam,
+            slug: null,
+            isReady: true,
+            error: null,
+          });
+          return;
+        }
+
+        setMosqueId(null);
+        setMosqueLookup({
+          id: null,
+          slug: null,
+          isReady: true,
+          error:
+            "Masjid tidak ditemukan. Gunakan /tv/[slug] atau /tv?slug=slug-masjid.",
+        });
+      } catch (error) {
+        console.error("Gagal membaca URL TV Display", error);
+
+        if (!isMounted) return;
+
+        setMosqueId(null);
+        setMosqueLookup({
+          id: null,
+          slug: null,
+          isReady: true,
+          error: "Gagal memuat data masjid.",
+        });
+      }
+    };
+
+    resolveMosque();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // =========================
@@ -25,6 +169,9 @@ export default function TVPage() {
 
   const [mosque, setMosque] =
     useState<any>(null);
+
+  const [tvLoadError, setTvLoadError] =
+    useState("");
 
   const [announcements, setAnnouncements] =
     useState<any[]>([]);
@@ -125,6 +272,26 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
     useRef<ReturnType<typeof setTimeout> | null>(
       null
     );
+
+  const refreshPrayerTimes =
+    useCallback(async (cityValue: unknown) => {
+      const city = trimText(cityValue);
+
+      if (!city) {
+        setPrayerTimes(null);
+        setNextPrayer("");
+        setCountdown("");
+        return;
+      }
+
+      try {
+        const timings = await fetchPrayerTimesForCity(city);
+        setPrayerTimes(timings);
+      } catch (error) {
+        console.error("Gagal memuat jadwal sholat", error);
+        setPrayerTimes(null);
+      }
+    }, []);
 
   // =========================
   // CLOCK
@@ -313,6 +480,18 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
 
         try {
 
+          setMosque(null);
+          setAnnouncements([]);
+          setPrayerTimes(null);
+          setNextPrayer("");
+          setCountdown("");
+          setQrisUrl("");
+          setLatestDonations([]);
+          setEvents([]);
+          setTodayOfficers([]);
+          setSlides([]);
+          setTvLoadError("");
+
           await loadQris();
 
           await loadDonations();
@@ -325,6 +504,8 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
           const {
             data:
               mosqueData,
+            error:
+              mosqueError,
           } = await supabase
 
             .from("mosques")
@@ -334,6 +515,17 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
             .eq("id", mosqueId)
 
             .single();
+
+          if (
+            mosqueError ||
+            !mosqueData
+          ) {
+
+            setTvLoadError(
+              "Data masjid tidak ditemukan."
+            );
+            return;
+          }
 
           if (
             mosqueData
@@ -356,34 +548,8 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
               );
             }
 
-            // CACHE
-            localStorage.setItem(
-              "mosque",
-              JSON.stringify(
-                mosqueItem
-              )
-            );
-
-            // PRAYER API
-            const response =
-              await fetch(
-
-                `https://api.aladhan.com/v1/timingsByCity?city=${mosqueItem.city || "Bandung"}&country=Indonesia&method=11`
-
-              );
-
-            const result =
-              await response.json();
-
-            setPrayerTimes(
-              result.data.timings
-            );
-
-            localStorage.setItem(
-              "prayerTimes",
-              JSON.stringify(
-                result.data.timings
-              )
+            await refreshPrayerTimes(
+              mosqueItem.city
             );
           }
 // SLIDES
@@ -441,36 +607,15 @@ if (slidesData) {
             );
           }
 
-        } catch {
+        } catch (error) {
 
-          // CACHE FALLBACK
-          const cachedMosque =
-            localStorage.getItem(
-              "mosque"
-            );
-
-          const cachedPrayer =
-            localStorage.getItem(
-              "prayerTimes"
-            );
-
-          if (cachedMosque) {
-
-            setMosque(
-              JSON.parse(
-                cachedMosque
-              )
-            );
-          }
-
-          if (cachedPrayer) {
-
-            setPrayerTimes(
-              JSON.parse(
-                cachedPrayer
-              )
-            );
-          }
+          console.error(
+            "Gagal memuat data TV Display",
+            error
+          );
+          setTvLoadError(
+            "Gagal memuat data TV Display."
+          );
         }
       };
 
@@ -518,6 +663,27 @@ if (slidesData) {
 
               setMosque(
                 data
+              );
+
+              setMosqueLookup(
+                (current) => ({
+                  ...current,
+                  id: data.id,
+                  slug: data.slug || current.slug,
+                })
+              );
+
+              if (
+                data?.iqomah_duration
+              ) {
+
+                setIqomahCountdown(
+                  data.iqomah_duration
+                );
+              }
+
+              await refreshPrayerTimes(
+                data.city
               );
             }
           }
@@ -716,7 +882,7 @@ if (slidesData) {
       }
     };
 
-  }, [mosqueId]);
+  }, [mosqueId, refreshPrayerTimes]);
 
   // =========================
   // AUTO REFRESH JADWAL
@@ -743,21 +909,8 @@ if (slidesData) {
           minute === 1
         ) {
 
-          if (!mosque?.city)
-            return;
-
-          const response =
-            await fetch(
-
-              `https://api.aladhan.com/v1/timingsByCity?city=${mosque.city}&country=Indonesia&method=11`
-
-            );
-
-          const result =
-            await response.json();
-
-          setPrayerTimes(
-            result.data.timings
+          await refreshPrayerTimes(
+            mosque?.city
           );
         }
 
@@ -768,7 +921,7 @@ if (slidesData) {
         interval
       );
 
-  }, [mosque]);
+  }, [mosque, refreshPrayerTimes]);
 
   // =========================
   // AUTO SLIDE
@@ -1378,10 +1531,35 @@ for (
   // UI
   // =========================
 
-  if (!mosqueId) {
+  if (!mosqueLookup.isReady) {
     return (
       <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-2xl">
-        Mosque ID tidak ditemukan. Gunakan /tv?mosque_id=ID
+        Memuat data masjid...
+      </main>
+    );
+  }
+
+  if (!mosqueId) {
+    return (
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-2xl text-center px-6">
+        {mosqueLookup.error ||
+          "Masjid tidak ditemukan. Gunakan /tv/[slug] atau /tv?slug=slug-masjid."}
+      </main>
+    );
+  }
+
+  if (tvLoadError) {
+    return (
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-2xl text-center px-6">
+        {tvLoadError}
+      </main>
+    );
+  }
+
+  if (!mosque) {
+    return (
+      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-2xl">
+        Memuat data TV Display...
       </main>
     );
   }
@@ -1432,7 +1610,9 @@ for (
 
             <p className="text-3xl text-slate-300 mt-2">
 
-              {mosque?.city}
+              {getLocationLabel(
+                mosque
+              )}
 
             </p>
 
@@ -1870,11 +2050,7 @@ for (
 
                 <p className="text-slate-400 mt-2">
 
-                  {new Date(
-                    item.event_date
-                  ).toLocaleDateString(
-                    "id-ID"
-                  )}
+                  {formatIndonesianDateWithDay(item.event_date)}
 
                   {" • "}
 

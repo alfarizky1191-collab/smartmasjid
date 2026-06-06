@@ -410,6 +410,10 @@ export default function DonasiPage() {
 
           <div className="flex flex-col gap-4">
 
+            {donations.length === 0 && (
+              <p className="text-slate-400">Belum ada data donasi.</p>
+            )}
+
             {donations.map(
               (item) => (
 

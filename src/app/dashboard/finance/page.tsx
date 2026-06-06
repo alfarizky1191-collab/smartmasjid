@@ -27,6 +27,7 @@ import {
 } from "recharts";
 
 import Adminsidebar from "@/components/Adminsidebar";
+import { formatIndonesianDateWithDay } from "@/lib/date-utils";
 
 export default function FinancePage() {
 
@@ -279,11 +280,7 @@ const exportPDF =
           transactions.map(
             (item) => [
 
-              new Date(
-                item.created_at
-              ).toLocaleDateString(
-                "id-ID"
-              ),
+              formatIndonesianDateWithDay(item.created_at),
 
               item.type ===
               "income"
@@ -537,6 +534,10 @@ const exportPDF =
           </h2>
 
           <div className="flex flex-col gap-4">
+
+            {transactions.length === 0 && (
+              <p className="text-slate-400">Belum ada transaksi.</p>
+            )}
 
             {transactions.map(
               (item) => (
