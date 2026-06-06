@@ -225,16 +225,6 @@ const [isIqomah, setIsIqomah] =
   useState("");
 
   const [
-  latestDonations,
-  setLatestDonations,
-] = useState<any[]>([]);
-
-const [
-  popupDonation,
-  setPopupDonation,
-] = useState<any>(null);
-
-const [
   events,
   setEvents,
 ] = useState<any[]>([]);
@@ -267,11 +257,6 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
 
   const triggeredRef =
     useRef<string | null>(null);
-
-  const donationPopupTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(
-      null
-    );
 
   const refreshPrayerTimes =
     useCallback(async (cityValue: unknown) => {
@@ -415,39 +400,6 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
       }
     };
 
-    const loadDonations =
-      async () => {
-
-        const {
-          data,
-        } = await supabase
-
-          .from(
-            "donations"
-          )
-
-          .select("*")
-
-          .eq("mosque_id", mosqueId)
-
-          .order(
-            "created_at",
-            {
-              ascending:
-                false,
-            }
-          )
-
-          .limit(5);
-
-        if (data) {
-
-          setLatestDonations(
-            data
-          );
-        }
-      };
-
     const loadQris =
       async () => {
 
@@ -486,15 +438,12 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
           setNextPrayer("");
           setCountdown("");
           setQrisUrl("");
-          setLatestDonations([]);
           setEvents([]);
           setTodayOfficers([]);
           setSlides([]);
           setTvLoadError("");
 
           await loadQris();
-
-          await loadDonations();
 
           await loadEvents();
 
@@ -748,62 +697,6 @@ if (slidesData) {
         .subscribe();
 
     // =========================
-    // REALTIME DONATION
-    // =========================
-
-    const donationChannel =
-      supabase
-
-        .channel(
-          "donation-realtime"
-        )
-
-        .on(
-          "postgres_changes",
-          {
-            event:
-              "INSERT",
-            schema:
-              "public",
-            table:
-              "donations",
-            filter:
-              `mosque_id=eq.${mosqueId}`,
-          },
-          (payload) => {
-
-            loadDonations();
-
-            setPopupDonation(
-              payload.new
-            );
-
-            if (
-              donationPopupTimeoutRef.current
-            ) {
-
-              clearTimeout(
-                donationPopupTimeoutRef.current
-              );
-            }
-
-            donationPopupTimeoutRef.current =
-              setTimeout(() => {
-
-                setPopupDonation(
-                  null
-                );
-
-                donationPopupTimeoutRef.current =
-                  null;
-
-              }, 10000);
-          }
-        )
-
-        .subscribe();
-
-    // =========================
     // REALTIME EVENT
     // =========================
 
@@ -861,10 +754,6 @@ if (slidesData) {
       );
 
       supabase.removeChannel(
-        donationChannel
-      );
-
-      supabase.removeChannel(
         eventChannel
       );
 
@@ -872,14 +761,6 @@ if (slidesData) {
         officerChannel
       );
 
-      if (
-        donationPopupTimeoutRef.current
-      ) {
-
-        clearTimeout(
-          donationPopupTimeoutRef.current
-        );
-      }
     };
 
   }, [mosqueId, refreshPrayerTimes]);
@@ -1956,44 +1837,6 @@ for (
       Scan QRIS untuk infaq & donasi masjid
 
     </p>
-<div className="bg-slate-900 rounded-3xl p-6">
-
-  <h2 className="text-4xl font-bold text-emerald-400 mb-6 text-center">
-
-    Donatur Terbaru
-
-  </h2>
-
-  <div className="flex flex-col gap-4">
-
-    {latestDonations.map(
-      (item) => (
-
-        <div
-          key={item.id}
-          className="bg-slate-800 rounded-2xl p-4 flex items-center justify-between"
-        >
-
-          <h3 className="text-2xl font-bold text-white">
-
-            {item.donor_name ||
-              "Hamba Allah"}
-
-          </h3>
-
-          <p className="text-3xl font-bold text-emerald-400">
-
-            Rp {item.amount.toLocaleString("id-ID")}
-
-          </p>
-
-        </div>
-      )
-    )}
-
-  </div>
-
-</div>
   </div>
 
 )}
@@ -2142,42 +1985,6 @@ for (
   src="audio/alarm.wav"
 />
 
-{popupDonation && (
-
-  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-
-    <div className="bg-slate-900 border-4 border-emerald-400 rounded-[40px] p-12 flex flex-col items-center gap-6 animate-pulse">
-
-      <h2 className="text-6xl font-bold text-emerald-400 text-center">
-
-        Terima Kasih 🙏
-
-      </h2>
-
-      <h3 className="text-5xl font-bold text-white text-center">
-
-        {popupDonation.donor_name ||
-          "Hamba Allah"}
-
-      </h3>
-
-      <p className="text-6xl font-bold text-yellow-400">
-
-        Rp {popupDonation.amount.toLocaleString("id-ID")}
-
-      </p>
-
-      <p className="text-2xl text-slate-300 text-center">
-
-        Semoga menjadi amal jariyah 🤲
-
-      </p>
-
-    </div>
-
-  </div>
-
-)}
     </main>
   );
 }

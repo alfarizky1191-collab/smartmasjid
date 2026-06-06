@@ -46,50 +46,52 @@ export default function PetugasPage() {
         .select("mosque_id")
         .eq("id", user.id)
         .single();
-      if (data) {
+      if (data?.mosque_id) {
         setMosqueId(data.mosque_id);
-        await loadOfficers();
-        await loadSchedules();
+        await loadOfficers(data.mosque_id);
+        await loadSchedules(data.mosque_id);
       }
     };
     init().finally(() => setLoading(false));
   }, []);
 
-  const loadOfficers = async () => {
+  const loadOfficers = async (mid: string) => {
     const { data } = await supabase
       .from("officers")
       .select("*")
+      .eq("mosque_id", mid)
       .order("created_at", { ascending: false });
     if (data) setOfficers(data);
   };
 
-  const loadSchedules = async () => {
+  const loadSchedules = async (mid: string) => {
     const { data } = await supabase
       .from("officer_schedules")
       .select("*, officers(name)")
+      .eq("mosque_id", mid)
       .order("schedule_date", { ascending: true });
     if (data) setSchedules(data);
   };
 
   const addOfficer = async () => {
-    if (!name.trim()) { alert("Nama petugas wajib diisi"); return; }
+    if (!name.trim() || !mosqueId) { alert("Nama petugas wajib diisi"); return; }
     await supabase.from("officers").insert([{
       name, phone, default_role: defaultRole, mosque_id: mosqueId,
     }]);
     setName(""); setPhone(""); setDefaultRole("");
-    await loadOfficers();
+    await loadOfficers(mosqueId);
     alert("Petugas berhasil ditambah");
   };
 
   const deleteOfficer = async (id: string) => {
-    if (!confirm("Hapus petugas ini?")) return;
-    await supabase.from("officers").delete().eq("id", id);
-    await loadOfficers();
-    await loadSchedules();
+    if (!confirm("Hapus petugas ini?") || !mosqueId) return;
+    await supabase.from("officers").delete().eq("id", id).eq("mosque_id", mosqueId);
+    await loadOfficers(mosqueId);
+    await loadSchedules(mosqueId);
   };
 
   const addSchedule = async () => {
-    if (!scheduleDate || !scheduleRole || !scheduleOfficerId) {
+    if (!scheduleDate || !scheduleRole || !scheduleOfficerId || !mosqueId) {
       alert("Lengkapi data jadwal"); return;
     }
     await supabase.from("officer_schedules").insert([{
@@ -99,14 +101,14 @@ export default function PetugasPage() {
       mosque_id: mosqueId,
     }]);
     setScheduleDate(""); setScheduleRole(""); setScheduleOfficerId("");
-    await loadSchedules();
+    await loadSchedules(mosqueId);
     alert("Jadwal berhasil ditambah");
   };
 
   const deleteSchedule = async (id: string) => {
-    if (!confirm("Hapus jadwal ini?")) return;
-    await supabase.from("officer_schedules").delete().eq("id", id);
-    await loadSchedules();
+    if (!confirm("Hapus jadwal ini?") || !mosqueId) return;
+    await supabase.from("officer_schedules").delete().eq("id", id).eq("mosque_id", mosqueId);
+    await loadSchedules(mosqueId);
   };
 
   const activeOfficers = officers.filter((o) => o.is_active);

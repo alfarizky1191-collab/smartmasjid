@@ -45,7 +45,7 @@ export default function DonasiPage() {
   ] = useState<any[]>([]);
 
   const loadDonations =
-    async () => {
+    async (mid: string) => {
 
       const {
         data,
@@ -56,6 +56,8 @@ export default function DonasiPage() {
         )
 
         .select("*")
+
+        .eq("mosque_id", mid)
 
         .order(
           "created_at",
@@ -83,42 +85,30 @@ export default function DonasiPage() {
           .select("mosque_id")
           .eq("id", user.id)
           .single();
-        if (data) setMosqueId(data.mosque_id);
+        if (data?.mosque_id) {
+          setMosqueId(data.mosque_id);
+          await loadDonations(data.mosque_id);
+
+          const donationChannel =
+            supabase
+              .channel("donation-realtime")
+              .on(
+                "postgres_changes",
+                {
+                  event: "*",
+                  schema: "public",
+                  table: "donations",
+                  filter: `mosque_id=eq.${data.mosque_id}`,
+                },
+                () => { loadDonations(data.mosque_id); }
+              )
+              .subscribe();
+
+          return () => { supabase.removeChannel(donationChannel); };
+        }
       }
-      await loadDonations();
     };
     init();
-
-    const donationChannel =
-      supabase
-
-        .channel(
-          "donation-realtime"
-        )
-
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema:
-              "public",
-            table:
-              "donations",
-          },
-          () => {
-
-            loadDonations();
-          }
-        )
-
-        .subscribe();
-
-    return () => {
-
-      supabase.removeChannel(
-        donationChannel
-      );
-    };
 
   }, []);
 
@@ -180,6 +170,8 @@ export default function DonasiPage() {
   const addDonation =
     async () => {
 
+      if (!mosqueId) return;
+
       await supabase
 
         .from(
@@ -229,7 +221,7 @@ export default function DonasiPage() {
       setAmount(0);
       setNote("");
 
-      loadDonations();
+      loadDonations(mosqueId);
 
       alert(
         "Donasi berhasil ditambah"

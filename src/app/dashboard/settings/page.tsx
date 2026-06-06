@@ -28,6 +28,8 @@ export default function SettingsPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState("");
+  const [postalColumnAvailable, setPostalColumnAvailable] = useState(true);
+  const [taglineColumnAvailable, setTaglineColumnAvailable] = useState(true);
 
   useEffect(() => {
     const init = async () => {
@@ -43,6 +45,7 @@ export default function SettingsPage() {
       } catch (err) {
         // ignore; fallback to built-in compact dataset
       }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
 
@@ -55,11 +58,38 @@ export default function SettingsPage() {
       if (!profile?.mosque_id) { setLoading(false); return; }
       setMosqueId(profile.mosque_id);
 
-      const { data: mosque } = await supabase
-        .from("mosques")
-        .select("name, slug, address, city, province, postal_code, tagline, logo_url")
-        .eq("id", profile.mosque_id)
-        .single();
+      // Fetch mosque profile. Some deployments may not have `postal_code` or `tagline` columns.
+      let mosque: any = null;
+      let localPostalAvail = true;
+      let localTaglineAvail = true;
+
+      const tryFetch = async (withPostal: boolean, withTagline: boolean) => {
+        const cols = ["name", "slug", "address", "city", "province", ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), "logo_url"].join(", ");
+        return supabase.from("mosques").select(cols).eq("id", profile.mosque_id).single();
+      };
+
+      const isColErr = (msg: string, col: string) =>
+        msg.toLowerCase().includes(col) || msg.toLowerCase().includes(`column "${col}"`);
+
+      let resp = await tryFetch(true, true);
+      if ((resp as any).error) {
+        const msg = ((resp as any).error?.message || "").toLowerCase();
+        if (isColErr(msg, "tagline")) { localTaglineAvail = false; setTaglineColumnAvailable(false); }
+        if (isColErr(msg, "postal_code")) { localPostalAvail = false; setPostalColumnAvailable(false); }
+        if (!localPostalAvail || !localTaglineAvail) {
+          // Recovered via column fallback — retry silently
+          resp = await tryFetch(localPostalAvail, localTaglineAvail);
+          if ((resp as any).error) {
+            const e = (resp as any).error;
+            console.warn("Mosque profile fetch failed after fallback:", e?.message || e?.code || JSON.stringify(e));
+          }
+        } else {
+          // Not a column error — log with detail
+          const e = (resp as any).error;
+          console.warn("Mosque profile fetch error:", e?.message || e?.code || e?.details || JSON.stringify(e));
+        }
+      }
+      mosque = (resp as any).data;
 
       if (mosque) {
         setName(mosque.name || "");
@@ -76,18 +106,18 @@ export default function SettingsPage() {
             // try to auto-fill postal code from first district if available
             const districts = getDistrictsForCity(provMatch.id, cityMatch.id);
             if (districts && districts.length > 0) {
-              setPostalCode(districts[0].postal_codes?.[0] || (mosque.postal_code || ""));
+              setPostalCode(districts[0].postal_codes?.[0] || ((mosque.postal_code as any) || ""));
             } else {
-              setPostalCode(mosque.postal_code || "");
+              setPostalCode(((mosque.postal_code as any) || "") as string);
             }
           } else {
             setCity(mosque.city || "");
-            setPostalCode(mosque.postal_code || "");
+            setPostalCode(((mosque.postal_code as any) || "") as string);
           }
         } else {
           setProvince(mosque.province || "");
           setCity(mosque.city || "");
-          setPostalCode(mosque.postal_code || "");
+          setPostalCode(((mosque.postal_code as any) || "") as string);
         }
 
         setTagline(mosque.tagline || "");
@@ -114,31 +144,47 @@ export default function SettingsPage() {
     if (!mosqueId) return;
     setSaving(true);
     const normalizedSlug = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
-    const { data: updatedMosque, error } = await supabase
-      .from("mosques")
-        // use upsert to ensure record exists and is updated safely
-        .upsert([
-          {
-            id: mosqueId,
-            name: name.trim(),
-            slug: normalizedSlug || null,
-            address: address.trim(),
-            city: city.trim(),
-            province: province.trim(),
-            postal_code: postalCode.trim() || null,
-            tagline: tagline.trim(),
-            logo_url: logoUrl || null,
-          },
-        ], { onConflict: "id" })
-        .select("name, slug, address, city, province, postal_code, tagline, logo_url")
+
+    // Attempt upsert including postal_code; if column missing, retry without it.
+    let updatedMosque: any = null;
+    const buildPayload = (withPostal: boolean, withTagline: boolean) => ({
+      id: mosqueId,
+      name: name.trim(),
+      slug: normalizedSlug || null,
+      address: address.trim(),
+      city: city.trim(),
+      province: province.trim(),
+      ...(withPostal ? { postal_code: postalCode.trim() || null } : {}),
+      ...(withTagline ? { tagline: tagline.trim() } : {}),
+      logo_url: logoUrl || null,
+    });
+    const buildSelect = (withPostal: boolean, withTagline: boolean) =>
+      ["name", "slug", "address", "city", "province", ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), "logo_url"].join(", ");
+    const isColErr2 = (msg: string, col: string) =>
+      msg.toLowerCase().includes(col) || msg.toLowerCase().includes(`column "${col}"`);
+
+    let withPostal = postalColumnAvailable;
+    let withTagline = taglineColumnAvailable;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const resp = await supabase
+        .from("mosques")
+        .upsert([buildPayload(withPostal, withTagline)], { onConflict: "id" })
+        .select(buildSelect(withPostal, withTagline))
         .single();
-
-    setSaving(false);
-
-    if (error) {
-      alert(error.message);
+      if (!(resp as any).error) {
+        updatedMosque = (resp as any).data;
+        break;
+      }
+      const msg = ((resp as any).error?.message || "");
+      if (isColErr2(msg, "tagline")) { withTagline = false; setTaglineColumnAvailable(false); continue; }
+      if (isColErr2(msg, "postal_code")) { withPostal = false; setPostalColumnAvailable(false); continue; }
+      setSaving(false);
+      alert((resp as any).error.message || "Gagal menyimpan profil");
       return;
     }
+
+    setSaving(false);
 
     if (updatedMosque) {
       setName(updatedMosque.name || "");
@@ -146,8 +192,11 @@ export default function SettingsPage() {
       setAddress(updatedMosque.address || "");
       setCity(updatedMosque.city || "");
       setProvince(updatedMosque.province || "");
-      setTagline(updatedMosque.tagline || "");
+      if (withTagline && updatedMosque.tagline !== undefined) setTagline(updatedMosque.tagline || "");
       setLogoUrl(updatedMosque.logo_url || "");
+      if (withPostal && updatedMosque.postal_code !== undefined) {
+        setPostalCode(updatedMosque.postal_code || "");
+      }
     }
 
     alert("Profil masjid berhasil disimpan");

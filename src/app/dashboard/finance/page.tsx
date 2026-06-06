@@ -54,7 +54,7 @@ export default function FinancePage() {
   ] = useState<any[]>([]);
 
   const loadTransactions =
-    async () => {
+    async (mid: string) => {
 
       const {
         data,
@@ -65,6 +65,8 @@ export default function FinancePage() {
         )
 
         .select("*")
+
+        .eq("mosque_id", mid)
 
         .order(
           "created_at",
@@ -92,9 +94,11 @@ export default function FinancePage() {
           .select("mosque_id")
           .eq("id", user.id)
           .single();
-        if (data) setMosqueId(data.mosque_id);
+        if (data?.mosque_id) {
+          setMosqueId(data.mosque_id);
+          await loadTransactions(data.mosque_id);
+        }
       }
-      await loadTransactions();
     };
     init();
 
@@ -104,6 +108,7 @@ export default function FinancePage() {
     async () => {
 
       if (
+        !mosqueId ||
         !title ||
         !category ||
         !amount
@@ -138,7 +143,7 @@ export default function FinancePage() {
       setAmount(0);
       setNote("");
 
-      loadTransactions();
+      loadTransactions(mosqueId!);
 
       alert(
         "Transaksi berhasil ditambah"
@@ -610,7 +615,8 @@ const exportPDF =
           );
 
         if (
-          !confirmDelete
+          !confirmDelete ||
+          !mosqueId
         ) return;
 
         await supabase
@@ -624,9 +630,11 @@ const exportPDF =
           .eq(
             "id",
             item.id
-          );
+          )
 
-        loadTransactions();
+          .eq("mosque_id", mosqueId);
+
+        loadTransactions(mosqueId);
       }}
       className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-xl font-bold"
     >

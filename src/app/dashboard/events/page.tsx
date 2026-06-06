@@ -38,7 +38,7 @@ export default function EventsPage() {
     useState<any[]>([]);
 
   const loadEvents =
-    async () => {
+    async (mid: string) => {
 
       const {
         data,
@@ -47,6 +47,8 @@ export default function EventsPage() {
         .from("events")
 
         .select("*")
+
+        .eq("mosque_id", mid)
 
         .order(
           "event_date",
@@ -72,42 +74,30 @@ export default function EventsPage() {
           .select("mosque_id")
           .eq("id", user.id)
           .single();
-        if (data) setMosqueId(data.mosque_id);
+        if (data?.mosque_id) {
+          setMosqueId(data.mosque_id);
+          await loadEvents(data.mosque_id);
+
+          const eventChannel =
+            supabase
+              .channel("event-realtime")
+              .on(
+                "postgres_changes",
+                {
+                  event: "*",
+                  schema: "public",
+                  table: "events",
+                  filter: `mosque_id=eq.${data.mosque_id}`,
+                },
+                () => { loadEvents(data.mosque_id); }
+              )
+              .subscribe();
+
+          return () => { supabase.removeChannel(eventChannel); };
+        }
       }
-      await loadEvents();
     };
     init();
-
-    const eventChannel =
-      supabase
-
-        .channel(
-          "event-realtime"
-        )
-
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema:
-              "public",
-            table:
-              "events",
-          },
-          () => {
-
-            loadEvents();
-          }
-        )
-
-        .subscribe();
-
-    return () => {
-
-      supabase.removeChannel(
-        eventChannel
-      );
-    };
 
   }, []);
 
@@ -115,6 +105,7 @@ export default function EventsPage() {
     async () => {
 
       if (
+        !mosqueId ||
         !title ||
         !eventDate ||
         !eventTime
@@ -158,7 +149,7 @@ export default function EventsPage() {
       setEventTime("");
       setDescription("");
 
-      loadEvents();
+      loadEvents(mosqueId);
 
       alert(
         "Kegiatan berhasil ditambah"
@@ -174,7 +165,8 @@ export default function EventsPage() {
         );
 
       if (
-        !confirmDelete
+        !confirmDelete ||
+        !mosqueId
       ) return;
 
       await supabase
@@ -186,9 +178,11 @@ export default function EventsPage() {
         .eq(
           "id",
           id
-        );
+        )
 
-      loadEvents();
+        .eq("mosque_id", mosqueId);
+
+      loadEvents(mosqueId);
     };
 
   return (
