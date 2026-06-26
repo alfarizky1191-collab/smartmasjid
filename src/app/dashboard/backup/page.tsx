@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import AdminSidebar from "@/components/Adminsidebar";
 import { type Role, isKnownRole, canAccess, defaultRoute, BACKUP_MODULES_BY_ROLE } from "@/lib/rbac";
+import { logAuditAction } from "@/lib/audit";
 
 type ModuleKey =
   | "mosque_profile"
@@ -117,6 +118,11 @@ export default function BackupPage() {
       const data = await fetchModuleData(mod, mosqueId);
       const filename = `${mod}-${new Date().toISOString().slice(0, 10)}`;
       format === "json" ? downloadJSON(`${filename}.json`, data) : downloadCSV(`${filename}.csv`, data);
+      await logAuditAction({
+        action: "Backup Export",
+        module: "Backup",
+        metadata: { export_module: mod, format, rows: data.length },
+      });
     } finally { setExporting(null); }
   };
 
@@ -148,6 +154,11 @@ export default function BackupPage() {
         a.href = url; a.download = `${filename}.csv`; a.click();
         URL.revokeObjectURL(url);
       }
+      await logAuditAction({
+        action: "Backup Export",
+        module: "Backup",
+        metadata: { export_module: "all", format, module_count: modules.length },
+      });
     } finally { setExporting(null); }
   };
 

@@ -29,6 +29,7 @@ import {
 import Adminsidebar from "@/components/Adminsidebar";
 import { formatIndonesianDateWithDay } from "@/lib/date-utils";
 import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
+import { logAuditAction } from "@/lib/audit";
 
 export default function FinancePage() {
 
@@ -147,6 +148,12 @@ export default function FinancePage() {
       setCategory("");
       setAmount(0);
       setNote("");
+
+      await logAuditAction({
+        action: "Create Finance",
+        module: "Finance",
+        metadata: { type, category, title, amount },
+      });
 
       loadTransactions(mosqueId!);
 
@@ -638,6 +645,12 @@ const exportPDF =
           )
 
           .eq("mosque_id", mosqueId);
+
+        await logAuditAction({
+          action: "Delete Finance",
+          module: "Finance",
+          metadata: { transaction_id: item.id, title: item.title, amount: item.amount },
+        });
 
         loadTransactions(mosqueId);
       }}

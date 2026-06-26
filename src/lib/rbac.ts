@@ -19,8 +19,8 @@ export function isKnownRole(value: string | null | undefined): value is Role {
 
 /** Routes each role is permitted to access. */
 export const ROLE_ROUTES: Record<Role, string[]> = {
-  super_admin:  ["/dashboard", "/dashboard/settings", "/dashboard/finance", "/dashboard/donasi", "/dashboard/events", "/dashboard/petugas", "/dashboard/backup"],
-  admin_masjid: ["/dashboard", "/dashboard/settings", "/dashboard/finance", "/dashboard/donasi", "/dashboard/events", "/dashboard/petugas", "/dashboard/backup"],
+  super_admin:  ["/dashboard", "/dashboard/settings", "/dashboard/finance", "/dashboard/donasi", "/dashboard/events", "/dashboard/petugas", "/dashboard/backup", "/dashboard/audit"],
+  admin_masjid: ["/dashboard", "/dashboard/settings", "/dashboard/finance", "/dashboard/donasi", "/dashboard/events", "/dashboard/petugas", "/dashboard/backup", "/dashboard/audit"],
   bendahara:    ["/dashboard/finance", "/dashboard/donasi", "/dashboard/backup"],
   operator_tv:  ["/dashboard"],
   sekretaris:   ["/dashboard/events", "/dashboard/petugas"],

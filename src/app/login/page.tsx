@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { logAuditAction } from "@/lib/audit";
 export default function LoginPage() {
 
 
@@ -19,6 +20,7 @@ export default function LoginPage() {
       return;
     }
 
+    await logAuditAction({ action: "Login", module: "Auth" });
     window.location.href = "/dashboard";
   };
 

@@ -14,6 +14,7 @@ import {
   getPostalCodeForDistrict,
 } from "@/lib/indonesia-locations";
 import { setRuntimeProvinces } from "@/lib/indonesia-locations";
+import { logAuditAction } from "@/lib/audit";
 
 export default function SettingsPage() {
   const [mosqueId, setMosqueId] = useState<string | null>(null);
@@ -145,6 +146,11 @@ export default function SettingsPage() {
     const oldPath = extractStoragePath(logoUrl, "mosque-assets", mosqueId);
     if (oldPath) await supabase.storage.from("mosque-assets").remove([oldPath]);
     await supabase.from("mosques").update({ logo_url: publicUrl }).eq("id", mosqueId);
+    await logAuditAction({
+      action: "Logo Upload",
+      module: "Media",
+      metadata: { file_name: logoFile.name },
+    });
     setLogoUrl(publicUrl);
     setLogoFile(null);
     alert("Logo berhasil diupload");
@@ -208,6 +214,17 @@ export default function SettingsPage() {
         setPostalCode(updatedMosque.postal_code || "");
       }
     }
+
+    await logAuditAction({
+      action: "Settings Update",
+      module: "Settings",
+      metadata: {
+        name: name.trim(),
+        slug: normalizedSlug || null,
+        city: city.trim(),
+        province: province.trim(),
+      },
+    });
 
     alert("Profil masjid berhasil disimpan");
   };

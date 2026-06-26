@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import AdminSidebar from "@/components/Adminsidebar";
 import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
 import { extractStoragePath } from "@/lib/storage-utils";
+import { logAuditAction } from "@/lib/audit";
 
 export default function DashboardPage() {
 
@@ -166,6 +167,12 @@ export default function DashboardPage() {
 
         .eq("id", editingId);
 
+      await logAuditAction({
+        action: "Update Announcement",
+        module: "Announcements",
+        metadata: { announcement_id: editingId, title: announcement },
+      });
+
       alert("Pengumuman berhasil diupdate");
 
     } else {
@@ -178,6 +185,12 @@ export default function DashboardPage() {
           title: announcement,
           mosque_id: mosqueId,
         });
+
+      await logAuditAction({
+        action: "Create Announcement",
+        module: "Announcements",
+        metadata: { title: announcement },
+      });
 
       alert("Pengumuman berhasil ditambah");
     }
@@ -211,6 +224,12 @@ export default function DashboardPage() {
       .delete()
 
       .eq("id", id);
+
+    await logAuditAction({
+      action: "Delete Announcement",
+      module: "Announcements",
+      metadata: { announcement_id: id },
+    });
 
     loadAnnouncements();
   };
@@ -266,6 +285,12 @@ export default function DashboardPage() {
 
       .eq("id", mosqueId);
 
+    await logAuditAction({
+      action: "Logo Upload",
+      module: "Media",
+      metadata: { file_name: logoFile.name },
+    });
+
     setLogoUrl(publicUrl);
 
     alert("Logo berhasil diupload");
@@ -284,6 +309,15 @@ export default function DashboardPage() {
       })
 
       .eq("id", mosqueId);
+
+    await logAuditAction({
+      action: "Settings Update",
+      module: "Settings",
+      metadata: {
+        running_text_speed: runningTextSpeed,
+        iqomah_duration: iqomahDuration,
+      },
+    });
 
     alert("Setting berhasil disimpan");
   };
@@ -342,6 +376,12 @@ export default function DashboardPage() {
         ascending: false,
       });
 
+    await logAuditAction({
+      action: "Slide Upload",
+      module: "Media",
+      metadata: { file_name: file.name },
+    });
+
     if (slidesData) {
 
       setSlides(slidesData);
@@ -372,6 +412,12 @@ export default function DashboardPage() {
 
       .eq("id", id);
 
+    await logAuditAction({
+      action: "Slide Delete",
+      module: "Media",
+      metadata: { slide_id: id },
+    });
+
     setSlides(
       slides.filter(
         (item) => item.id !== id
@@ -380,6 +426,8 @@ export default function DashboardPage() {
   };
 
   const handleLogout = async () => {
+
+    await logAuditAction({ action: "Logout", module: "Auth" });
 
     await supabase.auth.signOut();
 

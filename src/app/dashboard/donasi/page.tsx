@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase/client";
 import Adminsidebar from "@/components/Adminsidebar";
 import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
 import { extractStoragePath } from "@/lib/storage-utils";
+import { logAuditAction } from "@/lib/audit";
 
 export default function DonasiPage() {
 
@@ -180,6 +181,12 @@ export default function DonasiPage() {
     },
   ], { onConflict: "mosque_id" });
 
+      await logAuditAction({
+        action: "QRIS Update",
+        module: "QRIS",
+        metadata: { file_name: qrisFile.name },
+      });
+
       alert(
         "QRIS berhasil upload"
       );
@@ -238,6 +245,12 @@ export default function DonasiPage() {
       setDonorName("");
       setAmount(0);
       setNote("");
+
+      await logAuditAction({
+        action: "Create Donation",
+        module: "Donasi",
+        metadata: { donor_name: donorName || "Hamba Allah", amount },
+      });
 
       loadDonations(mosqueId);
 

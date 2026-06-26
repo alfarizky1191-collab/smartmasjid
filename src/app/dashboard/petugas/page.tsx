@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 import AdminSidebar from "@/components/Adminsidebar";
 import { formatIndonesianDateWithDay } from "@/lib/date-utils";
 import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
+import { logAuditAction } from "@/lib/audit";
 
 interface Officer {
   id: string;
@@ -84,6 +85,11 @@ export default function PetugasPage() {
     await supabase.from("officers").insert([{
       name, phone, default_role: defaultRole, mosque_id: mosqueId,
     }]);
+    await logAuditAction({
+      action: "Add Officer",
+      module: "Petugas",
+      metadata: { name, default_role: defaultRole },
+    });
     setName(""); setPhone(""); setDefaultRole("");
     await loadOfficers(mosqueId);
     alert("Petugas berhasil ditambah");
@@ -92,6 +98,11 @@ export default function PetugasPage() {
   const deleteOfficer = async (id: string) => {
     if (!confirm("Hapus petugas ini?") || !mosqueId) return;
     await supabase.from("officers").delete().eq("id", id).eq("mosque_id", mosqueId);
+    await logAuditAction({
+      action: "Delete Officer",
+      module: "Petugas",
+      metadata: { officer_id: id },
+    });
     await loadOfficers(mosqueId);
     await loadSchedules(mosqueId);
   };
@@ -106,6 +117,15 @@ export default function PetugasPage() {
       officer_id: scheduleOfficerId,
       mosque_id: mosqueId,
     }]);
+    await logAuditAction({
+      action: "Create Officer Schedule",
+      module: "Petugas",
+      metadata: {
+        schedule_date: scheduleDate,
+        role: scheduleRole,
+        officer_id: scheduleOfficerId,
+      },
+    });
     setScheduleDate(""); setScheduleRole(""); setScheduleOfficerId("");
     await loadSchedules(mosqueId);
     alert("Jadwal berhasil ditambah");
@@ -114,6 +134,11 @@ export default function PetugasPage() {
   const deleteSchedule = async (id: string) => {
     if (!confirm("Hapus jadwal ini?") || !mosqueId) return;
     await supabase.from("officer_schedules").delete().eq("id", id).eq("mosque_id", mosqueId);
+    await logAuditAction({
+      action: "Delete Officer Schedule",
+      module: "Petugas",
+      metadata: { schedule_id: id },
+    });
     await loadSchedules(mosqueId);
   };
 

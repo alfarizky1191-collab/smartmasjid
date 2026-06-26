@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { type Role, isKnownRole } from "@/lib/rbac";
+import { logAuditAction } from "@/lib/audit";
 
 type MenuItem = { name: string; href: string };
 
@@ -16,11 +17,12 @@ const menuItems = {
   petugas:    { name: "Petugas",      href: "/dashboard/petugas" },
   settings:   { name: "Settings",     href: "/dashboard/settings" },
   backup:     { name: "Backup Data",  href: "/dashboard/backup" },
+  audit:      { name: "Audit Trail",  href: "/dashboard/audit" },
 } satisfies Record<string, MenuItem>;
 
 const menusByRole: Record<Role, MenuItem[]> = {
-  super_admin:  [menuItems.tvDisplay, menuItems.finance, menuItems.donasi, menuItems.events, menuItems.petugas, menuItems.settings, menuItems.backup],
-  admin_masjid: [menuItems.tvDisplay, menuItems.finance, menuItems.donasi, menuItems.events, menuItems.petugas, menuItems.settings, menuItems.backup],
+  super_admin:  [menuItems.tvDisplay, menuItems.finance, menuItems.donasi, menuItems.events, menuItems.petugas, menuItems.settings, menuItems.backup, menuItems.audit],
+  admin_masjid: [menuItems.tvDisplay, menuItems.finance, menuItems.donasi, menuItems.events, menuItems.petugas, menuItems.settings, menuItems.backup, menuItems.audit],
   bendahara:    [menuItems.finance, menuItems.donasi, menuItems.backup],
   operator_tv:  [menuItems.tvDisplay],
   sekretaris:   [menuItems.events, menuItems.petugas],
@@ -84,6 +86,7 @@ export default function AdminSidebar() {
 
       <button
         onClick={async () => {
+          await logAuditAction({ action: "Logout", module: "Auth" });
           await supabase.auth.signOut();
           window.location.href = "/login";
         }}

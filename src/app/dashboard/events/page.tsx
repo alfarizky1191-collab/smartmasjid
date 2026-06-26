@@ -10,6 +10,7 @@ import { formatIndonesianDateWithDay } from "@/lib/date-utils";
 
 import AdminSidebar from "@/components/Adminsidebar";
 import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
+import { logAuditAction } from "@/lib/audit";
 
 export default function EventsPage() {
 
@@ -154,6 +155,12 @@ export default function EventsPage() {
       setEventTime("");
       setDescription("");
 
+      await logAuditAction({
+        action: "Create Event",
+        module: "Events",
+        metadata: { title, event_date: eventDate, event_time: eventTime },
+      });
+
       loadEvents(mosqueId);
 
       alert(
@@ -186,6 +193,12 @@ export default function EventsPage() {
         )
 
         .eq("mosque_id", mosqueId);
+
+      await logAuditAction({
+        action: "Delete Event",
+        module: "Events",
+        metadata: { event_id: id },
+      });
 
       loadEvents(mosqueId);
     };
