@@ -79,52 +79,49 @@ export default function DonasiPage() {
     };
 
   useEffect(() => {
+    let cancelled = false;
+    let donationChannel: any = null;
 
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = "/login"; return; }
+      if (cancelled || !user) { if (!user) window.location.href = "/login"; return; }
       const { data } = await supabase
         .from("profiles")
         .select("mosque_id, role")
         .eq("id", user.id)
         .single();
-      if (data?.mosque_id) {
-        const userRole = isKnownRole(data.role) ? data.role : "super_admin";
-        if (!canAccess(userRole, "/dashboard/donasi")) {
-          window.location.href = defaultRoute(userRole);
-          return;
-        }
-        setMosqueId(data.mosque_id);
-        await loadDonations(data.mosque_id);
+      if (cancelled || !data?.mosque_id) return;
+      const userRole = isKnownRole(data.role) ? data.role : "super_admin";
+      if (!canAccess(userRole, "/dashboard/donasi")) {
+        window.location.href = defaultRoute(userRole);
+        return;
+      }
+      setMosqueId(data.mosque_id);
+      await loadDonations(data.mosque_id);
 
-        // Load existing QRIS URL so we can clean it up on replacement
-        const { data: qrisData } = await supabase
-          .from("qris_settings")
-          .select("image_url")
-          .eq("mosque_id", data.mosque_id)
-          .single();
-        if (qrisData?.image_url) setQrisUrl(qrisData.image_url);
+      const { data: qrisData } = await supabase
+        .from("qris_settings")
+        .select("image_url")
+        .eq("mosque_id", data.mosque_id)
+        .single();
+      if (cancelled) return;
+      if (qrisData?.image_url) setQrisUrl(qrisData.image_url);
 
-          const donationChannel =
-            supabase
-              .channel("donation-realtime")
-              .on(
-                "postgres_changes",
-                {
-                  event: "*",
-                  schema: "public",
-                  table: "donations",
-                  filter: `mosque_id=eq.${data.mosque_id}`,
-                },
-                () => { loadDonations(data.mosque_id); }
-              )
-              .subscribe();
-
-          return () => { supabase.removeChannel(donationChannel); };
-        }
+      const channel = supabase.channel(`donation-realtime-${data.mosque_id}-${Date.now()}`);
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "donations", filter: `mosque_id=eq.${data.mosque_id}` },
+        () => { loadDonations(data.mosque_id); }
+      );
+      channel.subscribe();
+      donationChannel = channel;
     };
     init();
 
+    return () => {
+      cancelled = true;
+      if (donationChannel) supabase.removeChannel(donationChannel);
+    };
   }, []);
 
   const uploadQris =

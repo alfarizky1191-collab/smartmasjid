@@ -67,44 +67,42 @@ export default function EventsPage() {
     };
 
   useEffect(() => {
+    let cancelled = false;
+    let eventChannel: any = null;
 
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = "/login"; return; }
+      if (cancelled || !user) { if (!user) window.location.href = "/login"; return; }
       const { data } = await supabase
         .from("profiles")
         .select("mosque_id, role")
         .eq("id", user.id)
         .single();
-      if (data?.mosque_id) {
-        const userRole = isKnownRole(data.role) ? data.role : "super_admin";
-        if (!canAccess(userRole, "/dashboard/events")) {
-          window.location.href = defaultRoute(userRole);
-          return;
-        }
-        setMosqueId(data.mosque_id);
-        await loadEvents(data.mosque_id);
+      if (cancelled || !data?.mosque_id) return;
+      const userRole = isKnownRole(data.role) ? data.role : "super_admin";
+      if (!canAccess(userRole, "/dashboard/events")) {
+        window.location.href = defaultRoute(userRole);
+        return;
+      }
+      setMosqueId(data.mosque_id);
+      await loadEvents(data.mosque_id);
+      if (cancelled) return;
 
-          const eventChannel =
-            supabase
-              .channel("event-realtime")
-              .on(
-                "postgres_changes",
-                {
-                  event: "*",
-                  schema: "public",
-                  table: "events",
-                  filter: `mosque_id=eq.${data.mosque_id}`,
-                },
-                () => { loadEvents(data.mosque_id); }
-              )
-              .subscribe();
-
-          return () => { supabase.removeChannel(eventChannel); };
-        }
+      const channel = supabase.channel(`event-realtime-${data.mosque_id}-${Date.now()}`);
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "events", filter: `mosque_id=eq.${data.mosque_id}` },
+        () => { loadEvents(data.mosque_id); }
+      );
+      channel.subscribe();
+      eventChannel = channel;
     };
     init();
 
+    return () => {
+      cancelled = true;
+      if (eventChannel) supabase.removeChannel(eventChannel);
+    };
   }, []);
 
   const saveEvent =

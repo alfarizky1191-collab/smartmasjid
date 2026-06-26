@@ -348,12 +348,7 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
     const loadEvents =
       async () => {
 
-    const today =
-      new Date()
-
-        .toISOString()
-
-        .split("T")[0];
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 
     const {
       data,
@@ -387,7 +382,7 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
   };
 
     const loadTodayOfficers = async () => {
-      const today = new Date().toISOString().split("T")[0];
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
       const { data } = await supabase
         .from("officer_schedules")
         .select("role, officers(name)")
@@ -578,7 +573,7 @@ if (slidesData) {
       supabase
 
         .channel(
-          "mosque-realtime"
+          `mosque-realtime-${mosqueId}`
         )
 
         .on(
@@ -649,7 +644,7 @@ if (slidesData) {
       supabase
 
         .channel(
-          "announcement-realtime"
+          `announcement-realtime-${mosqueId}`
         )
 
         .on(
@@ -704,7 +699,7 @@ if (slidesData) {
       supabase
 
         .channel(
-          "event-realtime"
+          `event-realtime-${mosqueId}`
         )
 
         .on(
@@ -728,7 +723,7 @@ if (slidesData) {
         .subscribe();
 
     const officerChannel = supabase
-      .channel("officer-realtime")
+      .channel(`officer-realtime-${mosqueId}`)
       .on("postgres_changes", {
         event: "*",
         schema: "public",
@@ -1183,7 +1178,7 @@ for (
             time:
               prayerTimes.Fajr,
             audio:
-              "/audio/adzan-subuh.mp3",
+              mosque?.adzan_subuh_url || "/audio/adzan-subuh.mp3",
           },
 
           {
@@ -1192,7 +1187,7 @@ for (
             time:
               prayerTimes.Dhuhr,
             audio:
-              "/audio/adzan.mp3",
+              mosque?.adzan_url || "/audio/adzan.mp3",
           },
 
           {
@@ -1201,7 +1196,7 @@ for (
             time:
               prayerTimes.Asr,
             audio:
-              "/audio/adzan.mp3",
+              mosque?.adzan_url || "/audio/adzan.mp3",
           },
 
           {
@@ -1210,7 +1205,7 @@ for (
             time:
               prayerTimes.Maghrib,
             audio:
-              "/audio/adzan.mp3",
+              mosque?.adzan_url || "/audio/adzan.mp3",
           },
 
           {
@@ -1219,7 +1214,7 @@ for (
             time:
               prayerTimes.Isha,
             audio:
-              "/audio/adzan.mp3",
+              mosque?.adzan_url || "/audio/adzan.mp3",
           },
         ];
 
@@ -1977,12 +1972,12 @@ for (
 
 <audio
   ref={audioRef}
-  src="audio/adzan.mp3"
+  src={mosque?.adzan_url || "/audio/adzan.mp3"}
 />
 
 <audio
   ref={alarmRef}
-  src="audio/alarm.wav"
+  src={mosque?.alarm_url || "/audio/alarm.wav"}
 />
 
     </main>

@@ -25,6 +25,17 @@ export default function SettingsPage() {
   const [city, setCity] = useState("");
   const [province, setProvince] = useState("");
   const [provinceId, setProvinceId] = useState<string | undefined>(undefined);
+  const [cityId, setCityId] = useState<string | undefined>(undefined);
+  const [districtId, setDistrictId] = useState<string | undefined>(undefined);
+  const [districtName, setDistrictName] = useState("");
+  const [adzanUrl, setAdzanUrl] = useState("");
+  const [adzanSubuhUrl, setAdzanSubuhUrl] = useState("");
+  const [alarmUrl, setAlarmUrl] = useState("");
+  const [adzanFile, setAdzanFile] = useState<File | null>(null);
+  const [adzanSubuhFile, setAdzanSubuhFile] = useState<File | null>(null);
+  const [alarmFile, setAlarmFile] = useState<File | null>(null);
+  const [districts, setDistricts] = useState<{ id: string; name: string; postal_codes?: string[] }[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [postalCode, setPostalCode] = useState("");
   const [tagline, setTagline] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
@@ -33,6 +44,29 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState("");
   const [postalColumnAvailable, setPostalColumnAvailable] = useState(true);
   const [taglineColumnAvailable, setTaglineColumnAvailable] = useState(true);
+  const [districtColumnAvailable, setDistrictColumnAvailable] = useState(true);
+
+  const fetchDistricts = async (provId: string, cId: string) => {
+    setLoadingDistricts(true);
+    setDistricts([]);
+    try {
+      // BPS id "32.04" → emsifa id "3204" (remove all dots)
+      const numericCityId = cId.replace(/\./g, "");
+      const res = await fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/districts/${numericCityId}.json`);
+      if (res.ok) {
+        const data: { id: string; name: string }[] = await res.json();
+        const mapped = data.map((d) => ({ id: d.id, name: d.name }));
+        setDistricts(mapped);
+        return mapped;
+      }
+    } catch { /* ignore */ } finally {
+      setLoadingDistricts(false);
+    }
+    // fallback to built-in lib
+    const fallback = getDistrictsForCity(provId, cId);
+    setDistricts(fallback);
+    return fallback;
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -67,33 +101,33 @@ export default function SettingsPage() {
       }
       setMosqueId(profile.mosque_id);
 
-      // Fetch mosque profile. Some deployments may not have `postal_code` or `tagline` columns.
+      // Fetch mosque profile. Some deployments may not have `postal_code`, `tagline`, or `district` columns.
       let mosque: any = null;
       let localPostalAvail = true;
       let localTaglineAvail = true;
+      let localDistrictAvail = true;
 
-      const tryFetch = async (withPostal: boolean, withTagline: boolean) => {
-        const cols = ["name", "slug", "address", "city", "province", ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), "logo_url"].join(", ");
+      const tryFetch = async (withPostal: boolean, withTagline: boolean, withDistrict: boolean) => {
+        const cols = ["name", "slug", "address", "city", "province", ...(withDistrict ? ["district"] : []), ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), "logo_url", "adzan_url", "adzan_subuh_url", "alarm_url"].join(", ");
         return supabase.from("mosques").select(cols).eq("id", profile.mosque_id).single();
       };
 
       const isColErr = (msg: string, col: string) =>
         msg.toLowerCase().includes(col) || msg.toLowerCase().includes(`column "${col}"`);
 
-      let resp = await tryFetch(true, true);
+      let resp = await tryFetch(true, true, true);
       if ((resp as any).error) {
         const msg = ((resp as any).error?.message || "").toLowerCase();
         if (isColErr(msg, "tagline")) { localTaglineAvail = false; setTaglineColumnAvailable(false); }
         if (isColErr(msg, "postal_code")) { localPostalAvail = false; setPostalColumnAvailable(false); }
-        if (!localPostalAvail || !localTaglineAvail) {
-          // Recovered via column fallback — retry silently
-          resp = await tryFetch(localPostalAvail, localTaglineAvail);
+        if (isColErr(msg, "district")) { localDistrictAvail = false; setDistrictColumnAvailable(false); }
+        if (!localPostalAvail || !localTaglineAvail || !localDistrictAvail) {
+          resp = await tryFetch(localPostalAvail, localTaglineAvail, localDistrictAvail);
           if ((resp as any).error) {
             const e = (resp as any).error;
             console.warn("Mosque profile fetch failed after fallback:", e?.message || e?.code || JSON.stringify(e));
           }
         } else {
-          // Not a column error — log with detail
           const e = (resp as any).error;
           console.warn("Mosque profile fetch error:", e?.message || e?.code || e?.details || JSON.stringify(e));
         }
@@ -112,13 +146,21 @@ export default function SettingsPage() {
           const cityMatch = findCityByName(provMatch.id, mosque.city || undefined);
           if (cityMatch) {
             setCity(cityMatch.name);
-            // try to auto-fill postal code from first district if available
-            const districts = getDistrictsForCity(provMatch.id, cityMatch.id);
-            if (districts && districts.length > 0) {
-              setPostalCode(districts[0].postal_codes?.[0] || ((mosque.postal_code as any) || ""));
-            } else {
-              setPostalCode(((mosque.postal_code as any) || "") as string);
-            }
+            setCityId(cityMatch.id);
+            // fetch districts for the restored city
+            try {
+              const dists = await fetchDistricts(provMatch.id, cityMatch.id);
+              // restore district selection from saved district name
+              if (mosque.district) {
+                const matched = dists.find((d: any) =>
+                  d.name.toLowerCase() === mosque.district.toLowerCase()
+                );
+                if (matched) { setDistrictId(matched.id); setDistrictName(matched.name); }
+                else setDistrictName(mosque.district);
+              }
+            } catch { /* non-fatal */ }
+            // restore postal code
+            setPostalCode(((mosque.postal_code as any) || "") as string);
           } else {
             setCity(mosque.city || "");
             setPostalCode(((mosque.postal_code as any) || "") as string);
@@ -131,6 +173,9 @@ export default function SettingsPage() {
 
         setTagline(mosque.tagline || "");
         setLogoUrl(mosque.logo_url || "");
+        setAdzanUrl(mosque.adzan_url || "");
+        setAdzanSubuhUrl(mosque.adzan_subuh_url || "");
+        setAlarmUrl(mosque.alarm_url || "");
       }
       setLoading(false);
     };
@@ -139,13 +184,30 @@ export default function SettingsPage() {
 
   const handleUploadLogo = async () => {
     if (!logoFile || !mosqueId) return;
-    const fileName = `${mosqueId}/${Date.now()}-${logoFile.name}`;
-    const { error } = await supabase.storage.from("mosque-assets").upload(fileName, logoFile);
-    if (error) { alert(error.message); return; }
+    const ext = logoFile.name.split(".").pop();
+    const fileName = `${mosqueId}/logo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("mosque-assets")
+      .upload(fileName, logoFile, { upsert: true });
+    if (error) {
+      console.error("Upload logo error:", error);
+      alert(`Gagal upload: ${error.message}`);
+      return;
+    }
     const publicUrl = supabase.storage.from("mosque-assets").getPublicUrl(fileName).data.publicUrl;
     const oldPath = extractStoragePath(logoUrl, "mosque-assets", mosqueId);
-    if (oldPath) await supabase.storage.from("mosque-assets").remove([oldPath]);
-    await supabase.from("mosques").update({ logo_url: publicUrl }).eq("id", mosqueId);
+    if (oldPath && oldPath !== fileName) {
+      await supabase.storage.from("mosque-assets").remove([oldPath]);
+    }
+    const { error: updateError } = await supabase
+      .from("mosques")
+      .update({ logo_url: publicUrl })
+      .eq("id", mosqueId);
+    if (updateError) {
+      console.error("Update logo_url error:", updateError);
+      alert(`Gagal simpan URL logo: ${updateError.message}`);
+      return;
+    }
     await logAuditAction({
       action: "Logo Upload",
       module: "Media",
@@ -163,36 +225,39 @@ export default function SettingsPage() {
 
     // Attempt upsert including postal_code; if column missing, retry without it.
     let updatedMosque: any = null;
-    const buildPayload = (withPostal: boolean, withTagline: boolean) => ({
+    const buildPayload = (withPostal: boolean, withTagline: boolean, withDistrict: boolean) => ({
       id: mosqueId,
       name: name.trim(),
       slug: normalizedSlug || null,
       address: address.trim(),
       city: city.trim(),
       province: province.trim(),
+      ...(withDistrict ? { district: districtName.trim() || null } : {}),
       ...(withPostal ? { postal_code: postalCode.trim() || null } : {}),
       ...(withTagline ? { tagline: tagline.trim() } : {}),
       logo_url: logoUrl || null,
     });
-    const buildSelect = (withPostal: boolean, withTagline: boolean) =>
-      ["name", "slug", "address", "city", "province", ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), "logo_url"].join(", ");
+    const buildSelect = (withPostal: boolean, withTagline: boolean, withDistrict: boolean) =>
+      ["name", "slug", "address", "city", "province", ...(withDistrict ? ["district"] : []), ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), "logo_url"].join(", ");
     const isColErr2 = (msg: string, col: string) =>
       msg.toLowerCase().includes(col) || msg.toLowerCase().includes(`column "${col}"`);
 
     let withPostal = postalColumnAvailable;
     let withTagline = taglineColumnAvailable;
+    let withDistrict = districtColumnAvailable;
 
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       const resp = await supabase
         .from("mosques")
-        .upsert([buildPayload(withPostal, withTagline)], { onConflict: "id" })
-        .select(buildSelect(withPostal, withTagline))
+        .upsert([buildPayload(withPostal, withTagline, withDistrict)], { onConflict: "id" })
+        .select(buildSelect(withPostal, withTagline, withDistrict))
         .single();
       if (!(resp as any).error) {
         updatedMosque = (resp as any).data;
         break;
       }
       const msg = ((resp as any).error?.message || "");
+      if (isColErr2(msg, "district")) { withDistrict = false; continue; }
       if (isColErr2(msg, "tagline")) { withTagline = false; setTaglineColumnAvailable(false); continue; }
       if (isColErr2(msg, "postal_code")) { withPostal = false; setPostalColumnAvailable(false); continue; }
       setSaving(false);
@@ -325,6 +390,10 @@ export default function SettingsPage() {
                   const prov = getProvinces().find((p) => p.id === v);
                   setProvince(prov?.name || "");
                   setCity("");
+                  setCityId(undefined);
+                  setDistrictId(undefined);
+                  setDistrictName("");
+                  setDistricts([]);
                   setPostalCode("");
                 }}
               >
@@ -339,26 +408,18 @@ export default function SettingsPage() {
               <span className="text-sm text-slate-400">Kota / Kabupaten</span>
               <select
                 className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2"
-                value={(() => {
-                  const cities = getCitiesForProvince(provinceId);
-                  const match = cities.find((c) => c.name === city);
-                  return match?.id || "";
-                })()}
-                onChange={(e) => {
-                  const cityId = e.target.value || undefined;
-                  if (!provinceId || !cityId) {
-                    setCity("");
-                    setPostalCode("");
-                    return;
-                  }
-                  const c = getCitiesForProvince(provinceId).find((x) => x.id === cityId);
+                value={cityId || ""}
+                onChange={async (e) => {
+                  const cId = e.target.value || undefined;
+                  setCityId(cId);
+                  setDistrictId(undefined);
+                  setDistrictName("");
+                  setDistricts([]);
+                  setPostalCode("");
+                  if (!provinceId || !cId) { setCity(""); return; }
+                  const c = getCitiesForProvince(provinceId).find((x) => x.id === cId);
                   setCity(c?.name || "");
-                  const districts = getDistrictsForCity(provinceId, cityId);
-                  if (districts && districts.length > 0) {
-                    setPostalCode(districts[0].postal_codes?.[0] || "");
-                  } else {
-                    setPostalCode("");
-                  }
+                  await fetchDistricts(provinceId, cId);
                 }}
               >
                 <option value="">-- Pilih Kota/Kabupaten (atau ketik manual di bawah) --</option>
@@ -372,25 +433,27 @@ export default function SettingsPage() {
               <span className="text-sm text-slate-400">Kecamatan (opsional)</span>
               <select
                 className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2"
+                value={districtId || ""}
                 onChange={(e) => {
-                  const districtId = e.target.value || undefined;
-                  // determine selected city id
-                  const cities = getCitiesForProvince(provinceId);
-                  const selectedCity = cities.find((c) => c.name === city);
-                  const cityId = selectedCity?.id;
-                  if (!provinceId || !cityId || !districtId) return;
-                  const pc = getPostalCodeForDistrict(provinceId, cityId, districtId);
-                  if (pc) setPostalCode(pc);
+                  const dId = e.target.value || undefined;
+                  setDistrictId(dId);
+                  const d = districts.find((x) => x.id === dId);
+                  setDistrictName(d?.name || "");
+                  if (d?.postal_codes?.[0]) setPostalCode(d.postal_codes[0]);
+                  else if (dId) {
+                    // fallback: try built-in lib
+                    const pc = getPostalCodeForDistrict(provinceId, cityId, dId);
+                    if (pc) setPostalCode(pc);
+                  }
                 }}
               >
-                <option value="">-- Pilih Kecamatan (jika tersedia) --</option>
-                {provinceId && (() => {
-                  const cities = getCitiesForProvince(provinceId);
-                  const selectedCity = cities.find((c) => c.name === city);
-                  return (selectedCity?.districts || []).map((d) => (
+                <option value="">-- Pilih Kecamatan --</option>
+                {loadingDistricts
+                  ? <option disabled>Memuat kecamatan...</option>
+                  : districts.map((d) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
-                  ));
-                })()}
+                  ))
+                }
               </select>
             </label>
 
@@ -406,6 +469,10 @@ export default function SettingsPage() {
                   setProvinceId(undefined);
                   // clear dependent fields to avoid mismatches
                   setCity("");
+                  setCityId(undefined);
+                  setDistrictId(undefined);
+                  setDistrictName("");
+                  setDistricts([]);
                   setPostalCode("");
                 }}
               />
@@ -416,6 +483,10 @@ export default function SettingsPage() {
                 onChange={(e) => {
                   // Manual city input should override any dataset-derived city
                   setCity(e.target.value);
+                  setCityId(undefined);
+                  setDistrictId(undefined);
+                  setDistrictName("");
+                  setDistricts([]);
                   // leave provinceId intact if user still wants to keep province selection
                   setPostalCode("");
                 }}
@@ -478,6 +549,81 @@ export default function SettingsPage() {
             {!slug && (
               <p className="text-sm text-yellow-400">Isi slug di atas untuk mendapatkan link Landing Page.</p>
             )}
+          </section>
+
+          {/* AUDIO */}
+          <section className="bg-slate-900 rounded-xl p-6 flex flex-col gap-5">
+            <h2 className="text-lg font-semibold">Audio Adzan &amp; Alarm</h2>
+            <p className="text-sm text-slate-400 -mt-3">Upload file audio untuk mengganti adzan dan alarm default di TV Display.</p>
+
+            {/* Adzan */}
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-slate-400">Adzan (Dzuhur, Ashar, Maghrib, Isya)</span>
+              {adzanUrl && <audio controls src={adzanUrl} className="w-full" />}
+              <div className="flex gap-2 items-center">
+                <input type="file" accept="audio/*" onChange={(e) => setAdzanFile(e.target.files?.[0] || null)} className="text-sm text-slate-400 flex-1" />
+                <button
+                  disabled={!adzanFile || !mosqueId}
+                  onClick={async () => {
+                    if (!adzanFile || !mosqueId) return;
+                    const ext = adzanFile.name.split(".").pop();
+                    const path = `${mosqueId}/adzan_url-${Date.now()}.${ext}`;
+                    const { error } = await supabase.storage.from("mosque-assets").upload(path, adzanFile, { upsert: true });
+                    if (error) { alert(`Gagal: ${error.message}`); return; }
+                    const url = supabase.storage.from("mosque-assets").getPublicUrl(path).data.publicUrl;
+                    await supabase.from("mosques").update({ adzan_url: url }).eq("id", mosqueId!);
+                    setAdzanUrl(url); setAdzanFile(null); alert("Berhasil diupload");
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-4 py-1.5 rounded text-sm font-medium shrink-0"
+                >Upload</button>
+              </div>
+            </div>
+
+            {/* Adzan Subuh */}
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-slate-400">Adzan Subuh</span>
+              {adzanSubuhUrl && <audio controls src={adzanSubuhUrl} className="w-full" />}
+              <div className="flex gap-2 items-center">
+                <input type="file" accept="audio/*" onChange={(e) => setAdzanSubuhFile(e.target.files?.[0] || null)} className="text-sm text-slate-400 flex-1" />
+                <button
+                  disabled={!adzanSubuhFile || !mosqueId}
+                  onClick={async () => {
+                    if (!adzanSubuhFile || !mosqueId) return;
+                    const ext = adzanSubuhFile.name.split(".").pop();
+                    const path = `${mosqueId}/adzan_subuh_url-${Date.now()}.${ext}`;
+                    const { error } = await supabase.storage.from("mosque-assets").upload(path, adzanSubuhFile, { upsert: true });
+                    if (error) { alert(`Gagal: ${error.message}`); return; }
+                    const url = supabase.storage.from("mosque-assets").getPublicUrl(path).data.publicUrl;
+                    await supabase.from("mosques").update({ adzan_subuh_url: url }).eq("id", mosqueId!);
+                    setAdzanSubuhUrl(url); setAdzanSubuhFile(null); alert("Berhasil diupload");
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-4 py-1.5 rounded text-sm font-medium shrink-0"
+                >Upload</button>
+              </div>
+            </div>
+
+            {/* Alarm */}
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-slate-400">Alarm Iqomah</span>
+              {alarmUrl && <audio controls src={alarmUrl} className="w-full" />}
+              <div className="flex gap-2 items-center">
+                <input type="file" accept="audio/*" onChange={(e) => setAlarmFile(e.target.files?.[0] || null)} className="text-sm text-slate-400 flex-1" />
+                <button
+                  disabled={!alarmFile || !mosqueId}
+                  onClick={async () => {
+                    if (!alarmFile || !mosqueId) return;
+                    const ext = alarmFile.name.split(".").pop();
+                    const path = `${mosqueId}/alarm_url-${Date.now()}.${ext}`;
+                    const { error } = await supabase.storage.from("mosque-assets").upload(path, alarmFile, { upsert: true });
+                    if (error) { alert(`Gagal: ${error.message}`); return; }
+                    const url = supabase.storage.from("mosque-assets").getPublicUrl(path).data.publicUrl;
+                    await supabase.from("mosques").update({ alarm_url: url }).eq("id", mosqueId!);
+                    setAlarmUrl(url); setAlarmFile(null); alert("Berhasil diupload");
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-4 py-1.5 rounded text-sm font-medium shrink-0"
+                >Upload</button>
+              </div>
+            </div>
           </section>
         </div>
       </div>
