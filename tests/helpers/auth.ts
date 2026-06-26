@@ -5,7 +5,7 @@ type CreateTestUserOptions = {
   email?: string;
   password?: string;
   mosqueId?: string;
-  role?: string;
+  role?: UserRole;
   fullName?: string;
 };
 
@@ -13,6 +13,36 @@ export type TestUser = {
   id?: string;
   email: string;
   password: string;
+};
+
+export type UserRole =
+  | "super_admin"
+  | "admin_masjid"
+  | "bendahara"
+  | "operator_tv"
+  | "sekretaris";
+
+const ROLE_ENV_MAP: Record<UserRole, { email: string; password: string }> = {
+  super_admin: {
+    email: "E2E_SUPER_EMAIL",
+    password: "E2E_SUPER_PASSWORD",
+  },
+  admin_masjid: {
+    email: "E2E_ADMIN_EMAIL",
+    password: "E2E_ADMIN_PASSWORD",
+  },
+  bendahara: {
+    email: "E2E_BENDAHARA_EMAIL",
+    password: "E2E_BENDAHARA_PASSWORD",
+  },
+  operator_tv: {
+    email: "E2E_OPERATOR_EMAIL",
+    password: "E2E_OPERATOR_PASSWORD",
+  },
+  sekretaris: {
+    email: "E2E_SEKRETARIS_EMAIL",
+    password: "E2E_SEKRETARIS_PASSWORD",
+  },
 };
 
 function requiredEnv(name: string) {
@@ -38,14 +68,22 @@ function getAdminSupabase() {
   );
 }
 
-export async function login(
-  page: Page,
-  email = process.env.E2E_EMAIL,
-  password = process.env.E2E_PASSWORD
-) {
+function getCredentials(role: UserRole) {
+  const config = ROLE_ENV_MAP[role];
+  const email = process.env[config.email] || process.env.E2E_EMAIL;
+  const password = process.env[config.password] || process.env.E2E_PASSWORD;
+
   if (!email || !password) {
-    throw new Error("E2E_EMAIL and E2E_PASSWORD are required to log in.");
+    throw new Error(
+      `Missing credentials for ${role}. Set ${config.email} / ${config.password} or fallback E2E_EMAIL / E2E_PASSWORD.`
+    );
   }
+
+  return { email, password };
+}
+
+export async function login(page: Page, role: UserRole = "super_admin") {
+  const { email, password } = getCredentials(role);
 
   await page.goto("/login");
   await page.getByPlaceholder("Email").fill(email);

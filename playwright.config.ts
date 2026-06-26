@@ -1,7 +1,28 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const envFile = resolve(__dirname, ".env.playwright");
+if (existsSync(envFile)) {
+  const content = readFileSync(envFile, "utf8");
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = trimmed.match(/^([A-Za-z0-9_\.\-]+)=(.*)$/);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key]) continue;
+    let value = rawValue;
+    if (value.startsWith("\"") && value.endsWith("\"")) {
+      value = JSON.parse(value);
+    }
+    process.env[key] = value;
+  }
+}
 
 const port = process.env.PORT || "3000";
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`;
+const baseURL =
+  process.env.E2E_BASE_URL || process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`;
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER === "1";
 
 export default defineConfig({
