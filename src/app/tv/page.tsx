@@ -1409,7 +1409,7 @@ for (
 
   if (!mosqueLookup.isReady) {
     return (
-      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-2xl">
+      <main className="min-h-screen bg-[#0a1628] flex items-center justify-center text-white text-2xl">
         Memuat data masjid...
       </main>
     );
@@ -1417,16 +1417,15 @@ for (
 
   if (!mosqueId) {
     return (
-      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-2xl text-center px-6">
-        {mosqueLookup.error ||
-          "Masjid tidak ditemukan. Gunakan /tv/[slug] atau /tv?slug=slug-masjid."}
+      <main className="min-h-screen bg-[#0a1628] flex items-center justify-center text-white text-2xl text-center px-6">
+        {mosqueLookup.error || "Masjid tidak ditemukan. Gunakan /tv/[slug] atau /tv?slug=slug-masjid."}
       </main>
     );
   }
 
   if (tvLoadError) {
     return (
-      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-2xl text-center px-6">
+      <main className="min-h-screen bg-[#0a1628] flex items-center justify-center text-white text-2xl text-center px-6">
         {tvLoadError}
       </main>
     );
@@ -1434,552 +1433,237 @@ for (
 
   if (!mosque) {
     return (
-      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-2xl">
+      <main className="min-h-screen bg-[#0a1628] flex items-center justify-center text-white text-2xl">
         Memuat data TV Display...
       </main>
     );
   }
 
+  // Current date string
+  const dateNow = new Date();
+  const dateLabel = dateNow.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
   return (
+    <main
+      className="w-screen h-screen overflow-hidden flex flex-col text-white select-none"
+      style={{ background: "linear-gradient(135deg, #0a1628 0%, #0d1f3c 60%, #0a1628 100%)" }}
+    >
+      {/* ── ADZAN OVERLAY ─────────────────────────────────── */}
+      {showAdzan && (
+        <div className="absolute inset-0 z-50 bg-yellow-500/95 flex flex-col items-center justify-center gap-6 animate-pulse">
+          <p className="text-8xl font-black text-slate-900">🕌 ADZAN {currentPrayer}</p>
+          <p className="text-5xl font-bold text-slate-900">Hayya 'alash Shalah</p>
+          <p className="text-3xl text-slate-800">📵 Mohon tenang & matikan HP</p>
+          <button onClick={stopAdzan} className="mt-4 bg-red-600 text-white px-10 py-4 rounded-2xl text-2xl font-bold">
+            Stop Adzan
+          </button>
+        </div>
+      )}
 
-    <main className={`
+      {/* ── SHOLAT MODE OVERLAY ───────────────────────────── */}
+      {showPrayerMode && (
+        <div className="absolute inset-0 z-50 bg-emerald-800/95 flex flex-col items-center justify-center gap-6">
+          <p className="text-8xl font-black">🕌 SHOLAT SEDANG BERLANGSUNG</p>
+          <p className="text-5xl">Mohon Tenang & Matikan HP</p>
+          <p className="text-4xl text-emerald-300">Rapikan dan luruskan shaf</p>
+        </div>
+      )}
 
-      min-h-screen
-      p-6
-      flex
-      flex-col
-      gap-6
-      overflow-hidden
-      transition-all
-      duration-500
+      {/* ── MAIN LAYOUT: LEFT | RIGHT ─────────────────────── */}
+      <div className="flex flex-1 overflow-hidden">
 
-      ${showAdzan
-        ? "bg-yellow-950 text-white"
-        : "bg-black text-white"}
+        {/* ══ LEFT: PRAYER TIMES COLUMN ══════════════════════ */}
+        <div
+          className="flex flex-col justify-between py-6 px-5 shrink-0"
+          style={{ width: "22%", background: "linear-gradient(180deg, #0e2248 0%, #0a1a38 100%)", borderRight: "2px solid #1e3a6e" }}
+        >
+          {/* Prayer rows */}
+          <div className="flex flex-col gap-1 flex-1 justify-center">
+            {prayers.map((p) => {
+              const isNext = p.name === nextPrayer;
+              return (
+                <div
+                  key={p.name}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                    isNext ? "bg-blue-600/80 shadow-lg shadow-blue-900/50" : "bg-transparent"
+                  }`}
+                >
+                  <span className="text-2xl shrink-0">
+                    {p.name === "Subuh" ? "🌅" : p.name === "Dzuhur" ? "☀️" : p.name === "Ashar" ? "🌤️" : p.name === "Maghrib" ? "🌇" : p.name === "Isya" ? "🌙" : "⭐"}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-base font-semibold ${isNext ? "text-white" : "text-blue-200"}`}>{p.name}</p>
+                    <p className={`text-3xl font-black tabular-nums leading-tight ${isNext ? "text-white" : "text-blue-100"}`}>
+                      {p.time ?? "--:--"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-    `}>
+          {/* Control buttons */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button onClick={goFullscreen} className="bg-blue-700/60 hover:bg-blue-700 text-xs text-blue-200 px-3 py-2 rounded-lg">
+              Fullscreen
+            </button>
+            <button
+              onClick={() => setAutoAdzanEnabled(!autoAdzanEnabled)}
+              className={`text-xs px-3 py-2 rounded-lg ${autoAdzanEnabled ? "bg-emerald-700/60 text-emerald-200" : "bg-slate-700/60 text-slate-400"}`}
+            >
+              {autoAdzanEnabled ? "Auto Adzan ON" : "Auto Adzan OFF"}
+            </button>
+            <button onClick={() => audioRef.current?.play()} className="bg-slate-700/40 hover:bg-slate-700 text-xs text-slate-300 px-3 py-2 rounded-lg">
+              Test Adzan
+            </button>
+            <button onClick={() => alarmRef.current?.play()} className="bg-slate-700/40 hover:bg-slate-700 text-xs text-slate-300 px-3 py-2 rounded-lg">
+              Test Alarm
+            </button>
+          </div>
+        </div>
 
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
+        {/* ══ RIGHT: MAIN CONTENT ════════════════════════════ */}
+        <div className="flex-1 flex flex-col overflow-hidden">
 
-        <div className="flex items-center gap-6">
-
-          {mosque?.logo_url && (
-
-            <img
-              src={
-                mosque.logo_url
-              }
-              alt="Logo"
-              className="w-28 h-28 rounded-full object-cover border-4 border-emerald-400 bg-white"
-            />
-
-          )}
-
-          <div>
-
-            <h1 className="text-6xl font-bold text-emerald-400">
-
-              {mosque?.name}
-
-            </h1>
-
-            <p className="text-3xl text-slate-300 mt-2">
-
-              {getLocationLabel(
-                mosque
+          {/* ── TOP HEADER BAR ── */}
+          <div
+            className="flex items-center justify-between px-8 py-4 shrink-0"
+            style={{ background: "linear-gradient(90deg, #0e2248 0%, #142d55 100%)", borderBottom: "2px solid #1e3a6e" }}
+          >
+            {/* Mosque identity */}
+            <div className="flex items-center gap-4">
+              {mosque?.logo_url && (
+                <img src={mosque.logo_url} alt="Logo" className="w-16 h-16 rounded-full object-cover border-2 border-blue-400 bg-white shrink-0" />
               )}
-
-            </p>
-
-          </div>
-
-        </div>
-
-        <div className="flex items-center gap-4">
-
-          <button
-            onClick={
-              goFullscreen
-            }
-            className="bg-emerald-500 px-8 py-4 rounded-2xl text-black font-bold text-2xl"
-          >
-            Fullscreen
-          </button>
-<button
-  onClick={() => {
-
-    if (
-      audioRef.current
-    ) {
-
-      audioRef.current.volume =
-        0.8;
-
-      audioRef.current.play();
-    }
-  }}
-  className="bg-blue-500 text-white px-6 py-4 rounded-2xl font-bold"
->
-
-  Test Adzan
-
-</button>
-
-<button
-  onClick={() => {
-
-    if (
-      alarmRef.current
-    ) {
-
-      alarmRef.current.volume =
-        0.8;
-
-      alarmRef.current.play();
-    }
-  }}
-  className="bg-yellow-500 text-black px-6 py-4 rounded-2xl font-bold"
->
-
-  Test Alarm
-
-</button>
-          <button
-            onClick={() =>
-              setAutoAdzanEnabled(
-                !autoAdzanEnabled
-              )
-            }
-            className="bg-emerald-500 px-8 py-4 rounded-2xl text-black font-bold text-2xl"
-          >
-
-            {autoAdzanEnabled
-              ? "Auto Adzan ON"
-              : "Auto Adzan OFF"}
-
-          </button>
-
-          <div className="text-6xl font-bold">
-
-            {time}
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* BANNER JUMAT */}
-      {isFriday && (
-
-        <div className="bg-yellow-400 text-black rounded-3xl p-6 text-center">
-
-          <h1 className="text-5xl font-bold">
-            🕌 JUMAT MUBARAK
-          </h1>
-
-          <p className="text-3xl mt-2">
-            Perbanyak Sholawat & Datang Lebih Awal
-          </p>
-
-        </div>
-
-      )}
-
-      {/* MODE JUMAT */}
-      {showJumatMode && (
-
-        <div className="bg-yellow-400 text-black rounded-3xl p-8 flex flex-col gap-6">
-
-          <h1 className="text-6xl font-bold text-center">
-            🕌 SHOLAT JUMAT
-          </h1>
-
-          <div className="grid grid-cols-3 gap-6">
-
-            <div className="bg-black/10 rounded-2xl p-6 text-center">
-
-              <p className="text-2xl font-semibold">
-                KHATIB
-              </p>
-
-              <h2 className="text-4xl font-bold mt-3">
-                {khatib}
-              </h2>
-
-            </div>
-
-            <div className="bg-black/10 rounded-2xl p-6 text-center">
-
-              <p className="text-2xl font-semibold">
-                IMAM
-              </p>
-
-              <h2 className="text-4xl font-bold mt-3">
-                {imamJumat}
-              </h2>
-
-            </div>
-
-            <div className="bg-black/10 rounded-2xl p-6 text-center">
-
-              <p className="text-2xl font-semibold">
-                MUADZIN
-              </p>
-
-              <h2 className="text-4xl font-bold mt-3">
-                {muadzin}
-              </h2>
-
-            </div>
-
-          </div>
-
-          <div className="text-center mt-4">
-
-            <p className="text-3xl font-bold">
-              📵 Mohon Silent Handphone
-            </p>
-
-          </div>
-
-        </div>
-
-      )}
-
-      {/* COUNTDOWN */}
-      <div className={`
-
-        rounded-3xl
-        p-8
-        text-center
-        transition-all
-        duration-500
-
-        ${showAdzan
-          ? "bg-yellow-400 text-black animate-pulse"
-          : "bg-emerald-500 text-black"}
-
-      `}>
-
-        {showPrayerMode ? (
-
-          <div className="flex flex-col items-center justify-center gap-8 py-10">
-
-            <h1 className="text-7xl font-bold">
-              🕌 SHOLAT SEDANG BERLANGSUNG
-            </h1>
-
-            <p className="text-5xl font-semibold">
-              Mohon Tenang & Matikan HP
-            </p>
-
-            <p className="text-4xl">
-              Rapikan dan luruskan shaf
-            </p>
-
-          </div>
-
-        ) : (
-
-          <>
-
-            <h2 className="text-5xl font-bold">
-
-              {showAdzan
-                ? `🕌 ADZAN ${currentPrayer}`
-                : `Adzan ${nextPrayer} dalam`}
-
-            </h2>
-
-            <p className="text-[120px] font-bold mt-4">
-
-              {countdown}
-
-            </p>
-
-            {showAdzan && (
-
-              <div className="mt-6 flex flex-col gap-4">
-
-                <p className="text-5xl font-bold animate-bounce">
-                  Hayya 'alash Shalah
-                </p>
-
-                <p className="text-3xl">
-                  Mari tinggalkan aktivitas sejenak
-                </p>
-
-                <p className="text-2xl">
-                  📵 Mohon tenang & matikan HP
-                </p>
-
+              <div>
+                <h1 className="text-3xl font-black leading-tight">
+                  <span className="text-white">Masjid </span>
+                  <span className="text-yellow-400">{mosque?.name?.replace(/^Masjid\s*/i, "")}</span>
+                </h1>
+                <p className="text-blue-300 text-sm mt-0.5 truncate max-w-lg">{mosque?.address || getLocationLabel(mosque)}</p>
               </div>
-
-            )}
-
-            {/* IQOMAH */}
-            <div className="mt-6">
-
-              <p className="text-3xl font-bold">
-                IQOMAH
-              </p>
-
-              <p className="text-6xl font-bold">
-
-                {formatIqomah(
-                  iqomahCountdown
-                )}
-
-              </p>
-
             </div>
-
-            {showAdzan && (
-
-              <button
-                onClick={
-                  stopAdzan
-                }
-                className="mt-8 bg-red-500 px-8 py-4 rounded-2xl text-white text-3xl font-bold"
-              >
-                Stop Adzan
-              </button>
-
-            )}
-
-          </>
-
-        )}
-
-      </div>
-
-
-      {/* JADWAL */}
-      <div className="grid grid-cols-7 gap-4">
-
-        {prayers.map(
-          (item) => (
-
-            
-            <div
-            
-              key={item.name}
-              className="bg-slate-900 rounded-3xl p-6 text-center"
-            >
-
-              <h2 className="text-3xl font-bold text-emerald-400">
-
-                {item.name}
-
-              </h2>
-
-              <p className="text-5xl font-bold mt-6">
-
-                {item.time}
-
-              </p>
-
+            {/* Date & time */}
+            <div className="text-right shrink-0">
+              <p className="text-blue-300 text-sm">• {dateLabel}</p>
+              <p className="text-4xl font-black text-white tabular-nums">{time}</p>
             </div>
-            
-          )
-        )}
-
-      </div>
-
-{/* SLIDER */}
-<div className="bg-slate-900 rounded-3xl overflow-hidden h-[350px] relative mb-6">
-
-  {slides.length > 0 ? (
-
-    <img
-      src={
-        slides[currentSlide]
-          ?.image_url
-      }
-      alt="Slide"
-      className="w-full h-full object-cover"
-    />
-
-  ) : (
-
-    <div className="flex items-center justify-center h-full text-white text-3xl">
-
-      Belum ada slide
-
-    </div>
-
-  )}
-{qrisUrl && (
-
-  <div className="bg-slate-900 rounded-3xl p-8 flex flex-col items-center justify-center gap-6">
-
-    <h2 className="text-5xl font-bold text-emerald-400">
-
-      Donasi Masjid
-
-    </h2>
-
-    <img
-      src={qrisUrl}
-      alt="QRIS"
-      className="w-[350px] rounded-3xl border-4 border-emerald-400"
-    />
-
-    <p className="text-3xl text-white text-center">
-
-      Scan QRIS untuk infaq & donasi masjid
-
-    </p>
-  </div>
-
-)}
-</div>
-
-      {/* PETUGAS HARI INI */}
-      <div className="bg-slate-900 rounded-3xl p-6">
-        <h2 className="text-4xl font-bold text-emerald-400 mb-6 text-center">
-          Petugas Hari Ini
-        </h2>
-        {todayOfficers.length === 0 ? (
-          <p className="text-2xl text-slate-400 text-center">Belum ada jadwal petugas hari ini</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {todayOfficers.map((o, i) => (
-              <div key={i} className="flex justify-between items-center bg-slate-800 rounded-2xl px-6 py-4">
-                <span className="text-2xl font-semibold text-yellow-400 capitalize">{o.role}</span>
-                <span className="text-2xl text-white">{o.name}</span>
-              </div>
-            ))}
           </div>
-        )}
-      </div>
 
-      <div className="bg-slate-900 rounded-3xl p-6">
-
-        <h2 className="text-4xl font-bold text-emerald-400 mb-6 text-center">
-
-          Jadwal Kegiatan
-
-        </h2>
-
-        <div className="flex flex-col gap-4">
-
-          {events.map(
-            (item) => (
-
-              <div
-                key={item.id}
-                className="bg-slate-800 rounded-2xl p-4"
-              >
-
-                <h3 className="text-3xl font-bold text-white">
-
-                  {item.title}
-
-                </h3>
-
-                <p className="text-xl text-slate-300 mt-2">
-
-                  {item.speaker}
-
-                </p>
-
-                <p className="text-slate-400 mt-2">
-
-                  {formatIndonesianDateWithDay(item.event_date)}
-
-                  {" • "}
-
-                  {item.event_time}
-
-                </p>
-
-              </div>
-            )
+          {/* ── JUMAT BANNER ── */}
+          {isFriday && (
+            <div className="bg-yellow-500 text-slate-900 text-center py-2 px-4 text-xl font-bold shrink-0">
+              🕌 JUMAT MUBARAK — Perbanyak Sholawat & Datang Lebih Awal
+            </div>
           )}
 
-        </div>
+          {/* ── MIDDLE: QRIS + CONTENT / SLIDES ── */}
+          <div className="flex flex-1 overflow-hidden gap-0">
 
-      </div>
-      {/* PENGUMUMAN */}
-      <div className="bg-slate-900 rounded-3xl p-6 flex flex-col gap-4 flex-1 overflow-hidden">
+            {/* QRIS panel */}
+            {qrisUrl && (
+              <div
+                className="flex flex-col items-center justify-center gap-4 px-6 py-5 shrink-0"
+                style={{ width: "36%", borderRight: "2px solid #1e3a6e", background: "rgba(10,26,56,0.6)" }}
+              >
+                <img src={qrisUrl} alt="QRIS" className="w-44 h-44 object-contain rounded-2xl border-4 border-white bg-white" />
+                <p className="text-center text-base font-semibold text-blue-100 leading-snug">
+                  GIVING INFAQ IS MUCH EASIER WITH QRIS. JUST SCAN THE QR CODE BELOW WITH YOUR PHONE.
+                </p>
+              </div>
+            )}
 
-        <h2 className="text-4xl font-bold text-emerald-400">
-          Pengumuman
-        </h2>
-
-        {announcements.map(
-          (item) => (
-
-            <div
-              key={item.id}
-              className="bg-slate-800 rounded-2xl p-6"
-            >
-
-              <p className="text-4xl text-center font-bold">
-
-                {item.title}
-
-              </p>
-
+            {/* Slides / announcements / events */}
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+              {slides.length > 0 ? (
+                <div className="flex-1 relative overflow-hidden">
+                  <img
+                    src={slides[currentSlide]?.image_url}
+                    alt="Slide"
+                    className="w-full h-full object-cover"
+                  />
+                  {/* announcement overlay */}
+                  {announcements.length > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-6 py-3">
+                      <p className="text-lg font-semibold text-white truncate">{announcements[0]?.title}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col justify-center px-8 py-6 gap-4 overflow-hidden">
+                  {/* Announcements */}
+                  {announcements.slice(0, 2).map((a) => (
+                    <div key={a.id} className="bg-blue-900/40 border border-blue-700/40 rounded-xl px-5 py-3">
+                      <p className="text-lg font-semibold text-white">{a.title}</p>
+                    </div>
+                  ))}
+                  {/* Events */}
+                  {events.slice(0, 2).map((e) => (
+                    <div key={e.id} className="bg-slate-800/50 border border-slate-700/40 rounded-xl px-5 py-3">
+                      <p className="font-bold text-yellow-400">{e.title}</p>
+                      <p className="text-sm text-slate-300">{formatIndonesianDateWithDay(e.event_date)} • {e.event_time}</p>
+                    </div>
+                  ))}
+                  {/* Officers */}
+                  {todayOfficers.length > 0 && (
+                    <div className="bg-slate-800/50 border border-slate-700/40 rounded-xl px-5 py-3">
+                      <p className="text-xs font-bold text-blue-300 uppercase tracking-wider mb-2">Petugas Hari Ini</p>
+                      {todayOfficers.map((o, i) => (
+                        <div key={i} className="flex justify-between text-sm">
+                          <span className="text-yellow-400 capitalize">{o.role}</span>
+                          <span className="text-white">{o.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )
-        )}
+          </div>
 
+          {/* ── COUNTDOWN + IQOMAH BAR ── */}
+          <div
+            className="flex items-center justify-between px-8 py-3 shrink-0"
+            style={{ background: "linear-gradient(90deg, #0d3b6e 0%, #0a2a50 100%)", borderTop: "2px solid #1e3a6e" }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-blue-300 text-lg font-semibold">🕐 {nextPrayer}</span>
+              <span className="text-white text-3xl font-black tabular-nums">{countdown}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-blue-300 text-sm font-semibold">Iqomah</span>
+              <span className="text-yellow-400 text-2xl font-black tabular-nums">{formatIqomah(iqomahCountdown)}</span>
+            </div>
+          </div>
+
+          {/* ── RUNNING TEXT ── */}
+          <div
+            className="shrink-0 overflow-hidden py-2"
+            style={{ background: "#07111f", borderTop: "1px solid #1e3a6e" }}
+          >
+            <div
+              className="text-lg font-semibold text-blue-300 whitespace-nowrap"
+              style={{
+                display: "inline-block",
+                paddingLeft: "100%",
+                animation: `marquee ${mosque?.running_text_speed || 20}s linear infinite`,
+              }}
+            >
+              • {mosque?.running_text} •
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* RUNNING TEXT */}
-     <div className="w-full overflow-hidden bg-slate-900 rounded-3xl py-4">
-
-  <div
-    className="text-4xl font-bold text-emerald-400 whitespace-nowrap"
-    style={{
-      display: "inline-block",
-      minWidth: "100%",
-      paddingLeft: "100%",
-      animation: `marquee ${
-        mosque?.running_text_speed || 20
-      }s linear infinite`,
-    }}
-  >
-
-    {mosque?.running_text}
-
-  </div>
-
-</div>
-
-      {/* CSS */}
       <style jsx>{`
-
-        
-        
-
         @keyframes marquee {
-
-          0% {
-            transform: translateX(0%);
-          }
-
-          100% {
-            transform: translateX(-100%);
-          }
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-100%); }
         }
-
       `}</style>
 
-<audio
-  ref={audioRef}
-  src={mosque?.adzan_url || "/audio/adzan.mp3"}
-/>
-
-<audio
-  ref={alarmRef}
-  src={mosque?.alarm_url || "/audio/alarm.wav"}
-/>
-
+      <audio ref={audioRef} src={mosque?.adzan_url || "/audio/adzan.mp3"} />
+      <audio ref={alarmRef} src={mosque?.alarm_url || "/audio/alarm.wav"} />
     </main>
   );
 }
