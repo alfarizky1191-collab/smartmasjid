@@ -232,7 +232,7 @@ export default function Home() {
               <span className="font-bold text-slate-900">SmartMasjid</span>
             </div>
             <p className="text-slate-600 text-sm">
-              © 2024 SmartMasjid. Made for mosques, by muslims.
+              © 2026 SmartMasjid. Made for mosques, by muslims.
             </p>
           </div>
         </div>
