@@ -302,6 +302,7 @@ export default function SettingsPage() {
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
   const landingUrl = slug ? `${baseUrl}/m/${slug}` : "";
+  const portalUrl = slug ? `${baseUrl}/masjid/${slug}` : "";
   const tvUrl = slug
     ? `${baseUrl}/tv/${slug}`
     : mosqueId
@@ -527,6 +528,24 @@ export default function SettingsPage() {
                   >
                     {copied === "landing" ? "✓" : "Copy"}
                   </button>
+                  <a href={landingUrl} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg text-sm shrink-0">Buka</a>
+                </div>
+              </div>
+            )}
+
+            {portalUrl && (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Portal Jamaah</span>
+                <p className="text-xs text-slate-500">Halaman publik untuk jamaah. Berisi jadwal sholat, pengumuman, kajian, petugas, dan QRIS donasi.</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-slate-800 rounded-lg px-3 py-2 text-sm text-emerald-300 truncate">{portalUrl}</code>
+                  <button
+                    onClick={() => copyToClipboard(portalUrl, "portal")}
+                    className="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-sm shrink-0"
+                  >
+                    {copied === "portal" ? "✓" : "Copy"}
+                  </button>
+                  <a href={portalUrl} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg text-sm shrink-0">Buka</a>
                 </div>
               </div>
             )}
@@ -542,6 +561,7 @@ export default function SettingsPage() {
                   >
                     {copied === "tv" ? "✓" : "Copy"}
                   </button>
+                  <a href={tvUrl} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg text-sm shrink-0">Buka</a>
                 </div>
               </div>
             )}

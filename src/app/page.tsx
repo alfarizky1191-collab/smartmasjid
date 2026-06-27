@@ -1,442 +1,242 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
-import { formatIndonesianDateWithDay } from "@/lib/date-utils";
+import { 
+  Clock, 
+  Tv, 
+  DollarSign, 
+  Heart, 
+  Calendar, 
+  Users,
+  ArrowRight,
+  Zap,
+  Shield
+} from "lucide-react";
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const trimText = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-
-const getLocationLabel = (mosque: any) => {
-  const parts = [trimText(mosque?.city), trimText(mosque?.province)].filter(Boolean);
-  return parts.length ? parts.join(", ") : "Lokasi belum diatur";
-};
-
-const fetchPrayerTimes = async (city: string) => {
-  const res = await fetch(
-    `https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=Indonesia&method=11`,
-    { cache: "no-store" }
-  );
-  if (!res.ok) throw new Error("Gagal memuat jadwal sholat");
-  return (await res.json())?.data?.timings || null;
-};
+const features = [
+  {
+    icon: Clock,
+    title: "Prayer Times",
+    description: "Accurate prayer schedules with countdown timers and prayer notifications",
+  },
+  {
+    icon: Tv,
+    title: "TV Display",
+    description: "Beautiful display system for mosques with slides, announcements, and prayer schedules",
+  },
+  {
+    icon: DollarSign,
+    title: "Finance",
+    description: "Complete financial management system for your mosque with transparent reporting",
+  },
+  {
+    icon: Heart,
+    title: "Donations",
+    description: "Integrated donation tracking with QR code payments and receipt generation",
+  },
+  {
+    icon: Calendar,
+    title: "Events",
+    description: "Organize mosque events and activities with scheduling and attendee management",
+  },
+  {
+    icon: Users,
+    title: "Officers",
+    description: "Manage mosque staff roles and daily duty schedules efficiently",
+  },
+];
 
 export default function Home() {
-  const [mosqueId, setMosqueId] = useState<string | null>(null);
-  const [mosque, setMosque] = useState<any>(null);
-  const [error, setError] = useState("");
-  const [ready, setReady] = useState(false);
+  const [superAdminExists, setSuperAdminExists] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [time, setTime] = useState("");
-  const [isFriday, setIsFriday] = useState(false);
-  const [prayerTimes, setPrayerTimes] = useState<any>(null);
-  const [nextPrayer, setNextPrayer] = useState("");
-  const [countdown, setCountdown] = useState("");
-  const [iqomahCountdown, setIqomahCountdown] = useState(300);
-  const [showAdzan, setShowAdzan] = useState(false);
-  const [currentPrayer, setCurrentPrayer] = useState("");
-  const [showPrayerMode, setShowPrayerMode] = useState(false);
-
-  const [slides, setSlides] = useState<any[]>([]);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
-  const [todayOfficers, setTodayOfficers] = useState<{ role: string; name: string }[]>([]);
-  const [qrisUrl, setQrisUrl] = useState("");
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const triggeredRef = useRef<string | null>(null);
-
-  const refreshPrayerTimes = useCallback(async (cityValue: unknown) => {
-    const city = trimText(cityValue);
-    if (!city) { setPrayerTimes(null); return; }
-    try { setPrayerTimes(await fetchPrayerTimes(city)); }
-    catch { setPrayerTimes(null); }
-  }, []);
-
-  // Resolve mosque from URL params or fallback to first mosque
   useEffect(() => {
-    let mounted = true;
-    const resolve = async () => {
+    const checkSuperAdmin = async () => {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const slugParam = params.get("slug")?.trim() || params.get("mosque_slug")?.trim() || "";
-        const idParam = params.get("mosque_id")?.trim() || params.get("id")?.trim() || "";
-        const mosqueParam = params.get("mosque")?.trim() || "";
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("role", "super_admin")
+          .limit(1);
 
-        const slug = slugParam || (!idParam && mosqueParam && !UUID_PATTERN.test(mosqueParam) ? mosqueParam : "");
-        const id = idParam || (mosqueParam && UUID_PATTERN.test(mosqueParam) ? mosqueParam : "");
-
-        let resolvedId: string | null = null;
-
-        if (slug) {
-          const { data } = await supabase.from("mosques").select("id").eq("slug", slug).maybeSingle();
-          resolvedId = data?.id || null;
-          if (!resolvedId) { if (mounted) { setError("Masjid tidak ditemukan."); setReady(true); } return; }
-        } else if (id) {
-          resolvedId = id;
+        if (!error && data) {
+          setSuperAdminExists(data.length > 0);
         } else {
-          // fallback: load first mosque
-          const { data } = await supabase.from("mosques").select("id").limit(1).maybeSingle();
-          resolvedId = data?.id || null;
+          setSuperAdminExists(false);
         }
-
-        if (mounted) { setMosqueId(resolvedId); setReady(true); }
       } catch {
-        if (mounted) { setError("Gagal memuat data masjid."); setReady(true); }
+        setSuperAdminExists(false);
+      } finally {
+        setIsLoading(false);
       }
     };
-    resolve();
-    return () => { mounted = false; };
+
+    checkSuperAdmin();
   }, []);
-
-  // Load all data when mosqueId is ready
-  useEffect(() => {
-    if (!mosqueId) return;
-
-    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
-
-    const loadMosque = async () => {
-      const { data } = await supabase.from("mosques").select("*").eq("id", mosqueId).single();
-      if (data) {
-        setMosque(data);
-        if (data.iqomah_duration) setIqomahCountdown(data.iqomah_duration);
-        await refreshPrayerTimes(data.city);
-      }
-    };
-    const loadSlides = async () => {
-      const { data } = await supabase.from("slides").select("*").eq("mosque_id", mosqueId).order("created_at", { ascending: false });
-      if (data) setSlides(data);
-    };
-    const loadAnnouncements = async () => {
-      const { data } = await supabase.from("announcements").select("*").eq("mosque_id", mosqueId).order("created_at", { ascending: false });
-      if (data) setAnnouncements(data);
-    };
-    const loadEvents = async () => {
-      const { data } = await supabase.from("events").select("*").eq("mosque_id", mosqueId).gte("event_date", today).order("event_date", { ascending: true }).limit(3);
-      if (data) setEvents(data);
-    };
-    const loadOfficers = async () => {
-      const { data } = await supabase.from("officer_schedules").select("role, officers(name)").eq("mosque_id", mosqueId).eq("schedule_date", today);
-      if (data) setTodayOfficers(data.map((d: any) => ({ role: d.role, name: d.officers?.name || "-" })));
-    };
-    const loadQris = async () => {
-      const { data } = await supabase.from("qris_settings").select("image_url").eq("mosque_id", mosqueId).single();
-      if (data?.image_url) setQrisUrl(data.image_url);
-    };
-
-    Promise.all([loadMosque(), loadSlides(), loadAnnouncements(), loadEvents(), loadOfficers(), loadQris()]);
-
-    const mosqueChannel = supabase.channel(`home-mosque-${mosqueId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "mosques", filter: `id=eq.${mosqueId}` },
-        async () => { await loadMosque(); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "announcements", filter: `mosque_id=eq.${mosqueId}` },
-        () => loadAnnouncements())
-      .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `mosque_id=eq.${mosqueId}` },
-        () => loadEvents())
-      .on("postgres_changes", { event: "*", schema: "public", table: "officer_schedules", filter: `mosque_id=eq.${mosqueId}` },
-        () => loadOfficers())
-      .subscribe();
-
-    return () => { supabase.removeChannel(mosqueChannel); };
-  }, [mosqueId, refreshPrayerTimes]);
-
-  // Clock
-  useEffect(() => {
-    const tick = () => {
-      const now = new Date();
-      setIsFriday(now.getDay() === 5);
-      setTime(now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Auto slide
-  useEffect(() => {
-    if (slides.length === 0) return;
-    const id = setInterval(() => setCurrentSlide((p) => (p + 1) % slides.length), 5000);
-    return () => clearInterval(id);
-  }, [slides.length]);
-
-  const isRamadhan = new Date().toLocaleDateString("en-TN-u-ca-islamic").includes("Ramadan");
-  const prayers = [
-    ...(isRamadhan ? [{ name: "Imsak", time: prayerTimes?.Imsak }] : []),
-    { name: "Subuh", time: prayerTimes?.Fajr },
-    { name: "Dzuhur", time: prayerTimes?.Dhuhr },
-    { name: "Ashar", time: prayerTimes?.Asr },
-    { name: "Maghrib", time: prayerTimes?.Maghrib },
-    { name: "Isya", time: prayerTimes?.Isha },
-  ];
-
-  // Countdown
-  useEffect(() => {
-    if (!prayerTimes) return;
-    const update = () => {
-      const now = new Date();
-      let upcoming: { name: string; date: Date } | null = null;
-      for (const p of prayers) {
-        if (!p.time) continue;
-        const [h, m] = p.time.split(":").map(Number);
-        const d = new Date(); d.setHours(h, m, 0, 0);
-        if (d > now) { upcoming = { name: p.name, date: d }; break; }
-      }
-      if (!upcoming && prayers[0]?.time) {
-        const [h, m] = prayers[0].time.split(":").map(Number);
-        const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(h, m, 0, 0);
-        upcoming = { name: prayers[0].name, date: tomorrow };
-      }
-      if (!upcoming) return;
-      const total = Math.floor((upcoming.date.getTime() - now.getTime()) / 1000);
-      const hrs = Math.floor(total / 3600);
-      const mins = Math.floor((total % 3600) / 60);
-      const secs = total % 60;
-      setNextPrayer(upcoming.name);
-      setCountdown(`${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
-    };
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [prayerTimes]);
-
-  // Auto adzan
-  useEffect(() => {
-    if (!prayerTimes) return;
-    const adzanList = [
-      { name: "Subuh", time: prayerTimes.Fajr, audio: "/audio/adzan-subuh.mp3" },
-      { name: "Dzuhur", time: prayerTimes.Dhuhr, audio: "/audio/adzan.mp3" },
-      { name: "Ashar", time: prayerTimes.Asr, audio: "/audio/adzan.mp3" },
-      { name: "Maghrib", time: prayerTimes.Maghrib, audio: "/audio/adzan.mp3" },
-      { name: "Isya", time: prayerTimes.Isha, audio: "/audio/adzan.mp3" },
-    ];
-    const id = setInterval(() => {
-      const currentTime = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false });
-      for (const p of adzanList) {
-        const key = `${p.name}-${currentTime}`;
-        if (currentTime === p.time && triggeredRef.current !== key) {
-          triggeredRef.current = key;
-          setShowAdzan(true);
-          setCurrentPrayer(p.name);
-          setIqomahCountdown(mosque?.iqomah_duration || 300);
-          const audio = new Audio(p.audio);
-          audioRef.current = audio;
-          audio.play();
-          setTimeout(() => setShowAdzan(false), 300000);
-          break;
-        }
-      }
-    }, 1000);
-    return () => clearInterval(id);
-  }, [prayerTimes, mosque]);
-
-  // Iqomah countdown
-  useEffect(() => {
-    if (!showAdzan) return;
-    const id = setInterval(() => {
-      setIqomahCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(id);
-          setShowPrayerMode(true);
-          setTimeout(() => setShowPrayerMode(false), 600000);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [showAdzan]);
-
-  const formatIqomah = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-
-  if (!ready) {
-    return (
-      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-xl">
-        Memuat data masjid...
-      </main>
-    );
-  }
-
-  if (error || !mosqueId) {
-    return (
-      <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6 text-white text-center px-6">
-        <p className="text-xl">{error || "Masjid tidak ditemukan."}</p>
-        <a href="/login" className="bg-emerald-500 px-6 py-3 rounded-xl font-bold text-black">Login Admin</a>
-      </main>
-    );
-  }
-
-  if (!mosque) {
-    return (
-      <main className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-xl">
-        Memuat tampilan masjid...
-      </main>
-    );
-  }
 
   return (
-    <main className={`min-h-screen p-4 flex flex-col gap-4 transition-all duration-500 ${showAdzan ? "bg-yellow-950" : "bg-black"} text-white`}>
-
-      {/* HEADER */}
-      <div className="flex items-center gap-3">
-        {mosque.logo_url && (
-          <img src={mosque.logo_url} alt="Logo" className="w-14 h-14 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-emerald-400 bg-white flex-shrink-0" />
-        )}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl sm:text-3xl font-bold text-emerald-400 truncate">{mosque.name}</h1>
-          <p className="text-sm sm:text-base text-slate-300">{getLocationLabel(mosque)}</p>
-        </div>
-        <div className="text-right flex-shrink-0">
-          <div className="text-2xl sm:text-4xl font-bold tabular-nums">{time}</div>
-        </div>
-      </div>
-
-      {/* JUMAT BANNER */}
-      {isFriday && (
-        <div className="bg-yellow-400 text-black rounded-2xl p-4 text-center">
-          <p className="text-lg sm:text-2xl font-bold">🕌 JUMAT MUBARAK</p>
-          <p className="text-sm sm:text-base mt-1">Perbanyak Sholawat & Datang Lebih Awal</p>
-        </div>
-      )}
-
-      {/* COUNTDOWN / ADZAN */}
-      <div className={`rounded-2xl p-5 text-center transition-all duration-500 ${showAdzan ? "bg-yellow-400 text-black animate-pulse" : "bg-emerald-500 text-black"}`}>
-        {showPrayerMode ? (
-          <div className="py-4">
-            <p className="text-xl sm:text-3xl font-bold">🕌 SHOLAT SEDANG BERLANGSUNG</p>
-            <p className="text-base sm:text-xl mt-2">Mohon Tenang & Matikan HP</p>
+    <div className="min-h-screen bg-white text-slate-900">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md">
+              <Shield className="w-6 h-6 text-white font-bold" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900">SmartMasjid</h1>
           </div>
-        ) : (
-          <>
-            <p className="text-base sm:text-xl font-bold">
-              {showAdzan ? `🕌 ADZAN ${currentPrayer}` : `Adzan ${nextPrayer} dalam`}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            >
+              Admin Login
+            </Link>
+            <Link
+              href="/login"
+              className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white transition-all shadow-md hover:shadow-lg"
+            >
+              Get Started
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative pt-16 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Background elements */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-20 right-1/4 w-96 h-96 bg-emerald-100/60 rounded-full blur-3xl opacity-40" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-100/40 rounded-full blur-3xl opacity-30" />
+        </div>
+
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-200 bg-emerald-50 mb-6">
+            <Zap className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm font-semibold text-emerald-700">Modern Mosque Management</span>
+          </div>
+
+          <h2 className="text-5xl sm:text-6xl font-bold mb-6 text-slate-900 leading-tight">
+            Manage Your Mosque <span className="bg-gradient-to-r from-emerald-600 to-amber-500 bg-clip-text text-transparent">Intelligently</span>
+          </h2>
+
+          <p className="text-lg sm:text-xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+            SmartMasjid is a comprehensive management platform designed specifically for mosques. Handle prayer times, donations, events, and more—all in one place.
+          </p>
+
+          <div className="flex justify-center mb-16">
+            <Link
+              href="/login"
+              className="px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+            >
+              Login Admin
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Setup Section (Conditional) */}
+      {superAdminExists === false && !isLoading && (
+        <section className="py-16 px-4 sm:px-6 lg:px-8 border-t border-slate-200 bg-gradient-to-br from-blue-50 to-emerald-50">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-blue-200 bg-blue-100 mb-4">
+              <Zap className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-semibold text-blue-700">Getting Started</span>
+            </div>
+            <h3 className="text-4xl font-bold mb-3 text-slate-900">
+              Buat SmartMasjid Pertama
+            </h3>
+            <p className="text-slate-600 mb-8 text-lg max-w-xl mx-auto">
+              Jadilah super admin pertama dan mulai mengelola masjid Anda dengan SmartMasjid.
             </p>
-            <p className="text-5xl sm:text-7xl font-bold mt-2 tabular-nums">{countdown}</p>
-            {showAdzan && (
-              <div className="mt-3 flex flex-col gap-1">
-                <p className="text-lg font-bold animate-bounce">Hayya &apos;alash Shalah</p>
-                <p className="text-sm">📵 Mohon tenang & matikan HP</p>
-              </div>
-            )}
-            <div className="mt-3">
-              <p className="text-sm font-bold">IQOMAH</p>
-              <p className="text-3xl font-bold">{formatIqomah(iqomahCountdown)}</p>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* JADWAL SHOLAT */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-        {prayers.map((p) => (
-          <div key={p.name} className="bg-slate-900 rounded-2xl p-3 text-center">
-            <p className="text-xs sm:text-sm font-bold text-emerald-400">{p.name}</p>
-            <p className="text-lg sm:text-2xl font-bold mt-1 tabular-nums">{p.time || "-"}</p>
+            <Link
+              href="/register"
+              className="inline-flex px-8 py-4 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+            >
+              Setup Pertama
+            </Link>
           </div>
-        ))}
-      </div>
-
-      {/* SLIDER */}
-      {slides.length > 0 && (
-        <div className="rounded-2xl overflow-hidden h-48 sm:h-72 relative">
-          <img src={slides[currentSlide]?.image_url} alt="Slide" className="w-full h-full object-cover" />
-          {slides.length > 1 && (
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-              {slides.map((_, i) => (
-                <div key={i} className={`w-2 h-2 rounded-full ${i === currentSlide ? "bg-emerald-400" : "bg-white/40"}`} />
-              ))}
-            </div>
-          )}
-        </div>
+        </section>
       )}
 
-      {/* QRIS */}
-      {qrisUrl && (
-        <div className="bg-slate-900 rounded-2xl p-5 flex flex-col items-center gap-3">
-          <h2 className="text-lg sm:text-2xl font-bold text-emerald-400">Donasi Masjid</h2>
-          <img src={qrisUrl} alt="QRIS" className="w-48 sm:w-64 rounded-2xl border-2 border-emerald-400" />
-          <p className="text-sm text-slate-300 text-center">Scan QRIS untuk infaq & donasi masjid</p>
-        </div>
-      )}
+      {/* Features Section */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6 text-slate-900">
+              Powerful Features
+            </h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Everything you need to manage your mosque efficiently and effectively
+            </p>
+          </div>
 
-      {/* PETUGAS HARI INI */}
-      {todayOfficers.length > 0 && (
-        <div className="bg-slate-900 rounded-2xl p-4">
-          <h2 className="text-base sm:text-xl font-bold text-emerald-400 mb-3">Petugas Hari Ini</h2>
-          <div className="flex flex-col gap-2">
-            {todayOfficers.map((o, i) => (
-              <div key={i} className="flex justify-between items-center bg-slate-800 rounded-xl px-4 py-2">
-                <span className="text-sm sm:text-base font-semibold text-yellow-400 capitalize">{o.role}</span>
-                <span className="text-sm sm:text-base">{o.name}</span>
-              </div>
-            ))}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <div
+                  key={index}
+                  className="group relative rounded-3xl border border-slate-200 bg-white hover:bg-slate-50 p-8 transition-all hover:shadow-lg hover:border-emerald-200"
+                >
+                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-500/0 to-emerald-500/0 group-hover:from-emerald-500/5 group-hover:to-emerald-500/0 transition-all" />
+                  
+                  <div className="relative">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center mb-6 group-hover:from-emerald-200 transition-colors shadow-sm">
+                      <Icon className="w-7 h-7 text-emerald-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-3 text-slate-900">
+                      {feature.title}
+                    </h3>
+                    <p className="text-slate-600 leading-relaxed text-base">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      )}
+      </section>
 
-      {/* JADWAL KEGIATAN */}
-      {events.length > 0 && (
-        <div className="bg-slate-900 rounded-2xl p-4">
-          <h2 className="text-base sm:text-xl font-bold text-emerald-400 mb-3">Jadwal Kegiatan</h2>
-          <div className="flex flex-col gap-2">
-            {events.map((item) => (
-              <div key={item.id} className="bg-slate-800 rounded-xl p-3">
-                <p className="text-base sm:text-lg font-bold">{item.title}</p>
-                {item.speaker && <p className="text-sm text-slate-300 mt-1">{item.speaker}</p>}
-                <p className="text-xs text-slate-400 mt-1">
-                  {formatIndonesianDateWithDay(item.event_date)} • {item.event_time}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* PENGUMUMAN */}
-      {announcements.length > 0 && (
-        <div className="bg-slate-900 rounded-2xl p-4">
-          <h2 className="text-base sm:text-xl font-bold text-emerald-400 mb-3">Pengumuman</h2>
-          <div className="flex flex-col gap-2">
-            {announcements.map((item) => (
-              <div key={item.id} className="bg-slate-800 rounded-xl p-3">
-                <p className="text-base font-bold text-center">{item.title}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* RUNNING TEXT */}
-      {mosque.running_text && (
-        <div className="overflow-hidden bg-slate-900 rounded-2xl py-3">
-          <div
-            className="text-base sm:text-xl font-bold text-emerald-400 whitespace-nowrap inline-block"
-            style={{
-              paddingLeft: "100%",
-              animation: `marquee ${mosque.running_text_speed || 20}s linear infinite`,
-            }}
+      {/* CTA Section */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 border-t border-slate-200 bg-gradient-to-br from-emerald-50 to-blue-50">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-4xl sm:text-5xl font-bold mb-6 text-slate-900">
+            Ready to Get Started?
+          </h2>
+          <p className="text-lg text-slate-600 mb-10 max-w-xl mx-auto">
+            Login to your admin dashboard and start managing your mosque today.
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold gap-2 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
           >
-            {mosque.running_text}
+            Go to Login
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 py-12 px-4 sm:px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-slate-900">SmartMasjid</span>
+            </div>
+            <p className="text-slate-600 text-sm">
+              © 2024 SmartMasjid. Made for mosques, by muslims.
+            </p>
           </div>
         </div>
-      )}
-
-      {/* LOGIN LINK */}
-      <div className="text-center pb-4">
-        <a href="/login" className="text-slate-500 text-xs hover:text-slate-400">Admin Login</a>
-      </div>
-
-      <audio ref={audioRef} src="/audio/adzan.mp3" />
-
-      <style jsx>{`
-        @keyframes marquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-100%); }
-        }
-      `}</style>
-    </main>
+      </footer>
+    </div>
   );
 }
