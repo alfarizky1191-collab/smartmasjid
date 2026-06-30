@@ -101,6 +101,8 @@ export default function DashboardPage() {
 
         .select("*")
 
+        .eq("mosque_id", userMosqueId)
+
         .order("created_at", {
           ascending: false,
         });
@@ -110,15 +112,15 @@ export default function DashboardPage() {
         setSlides(slidesData);
       }
 
-      loadAnnouncements();
+      loadAnnouncements(userMosqueId);
 
       // Summary counts
       const { count: evCount } = await supabase
-        .from("events").select("*", { count: "exact", head: true });
+        .from("events").select("*", { count: "exact", head: true }).eq("mosque_id", userMosqueId);
       if (evCount !== null) setEventCount(evCount);
 
       const { count: offCount } = await supabase
-        .from("officers").select("*", { count: "exact", head: true });
+        .from("officers").select("*", { count: "exact", head: true }).eq("mosque_id", userMosqueId);
       if (offCount !== null) setOfficerCount(offCount);
     };
 
@@ -126,7 +128,7 @@ export default function DashboardPage() {
 
   }, []);
 
-  const loadAnnouncements = async () => {
+  const loadAnnouncements = async (mid: string) => {
 
     const {
       data,
@@ -135,6 +137,8 @@ export default function DashboardPage() {
       .from("announcements")
 
       .select("*")
+
+      .eq("mosque_id", mid)
 
       .order("created_at", {
         ascending: false,
@@ -165,7 +169,9 @@ export default function DashboardPage() {
           title: announcement,
         })
 
-        .eq("id", editingId);
+        .eq("id", editingId)
+
+        .eq("mosque_id", mosqueId!);
 
       await logAuditAction({
         action: "Update Announcement",
@@ -199,7 +205,7 @@ export default function DashboardPage() {
 
     setEditingId(null);
 
-    loadAnnouncements();
+    loadAnnouncements(mosqueId!);
   };
 
   const handleEdit = (item: any) => {
@@ -223,7 +229,9 @@ export default function DashboardPage() {
 
       .delete()
 
-      .eq("id", id);
+      .eq("id", id)
+
+      .eq("mosque_id", mosqueId!);
 
     await logAuditAction({
       action: "Delete Announcement",
@@ -231,7 +239,7 @@ export default function DashboardPage() {
       metadata: { announcement_id: id },
     });
 
-    loadAnnouncements();
+    loadAnnouncements(mosqueId!);
   };
 
   const handleUploadLogo = async () => {
@@ -371,6 +379,8 @@ export default function DashboardPage() {
       .from("slides")
 
       .select("*")
+
+      .eq("mosque_id", mosqueId)
 
       .order("created_at", {
         ascending: false,

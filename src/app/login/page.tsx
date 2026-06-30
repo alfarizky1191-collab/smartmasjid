@@ -101,25 +101,34 @@ export default function LoginPage() {
       await logAuditAction({ action: "Login", module: "Auth" });
 
       // Get user role and redirect appropriately
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
+     const { data: profileData } = await supabase
+  .from("profiles")
+  .select("role, mosque_id")
+  .eq("id", data.user.id)
+  .single();
 
       const userRole = profileData?.role;
-      const redirectPath = isKnownRole(userRole) ? defaultRoute(userRole) : "/dashboard";
 
-      // Redirect after a brief delay to show success state
-      setTimeout(() => {
-        router.push(redirectPath);
-      }, 500);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred during login");
-      setLoading(false);
-    }
-  };
+// Jika user belum memiliki masjid, arahkan ke setup
+if (!profileData?.mosque_id) {
+  router.push("/setup");
+  return;
+}
 
+// Jika sudah punya masjid, masuk dashboard sesuai role
+const redirectPath = isKnownRole(userRole)
+  ? defaultRoute(userRole)
+  : "/dashboard";
+
+router.push(redirectPath);
+
+} catch (err: any) {
+  setError(err?.message || "An unexpected error occurred.");
+} finally {
+  setLoading(false);
+}
+};  
+  
   // Handle enter key
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !loading) {
