@@ -118,20 +118,21 @@ export async function createTestUser(options: CreateTestUserOptions = {}): Promi
   const mosqueId = options.mosqueId || process.env.E2E_MOSQUE_ID;
   const role = options.role || "admin_masjid";
 
-  if (mosqueId) {
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert({
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .upsert(
+      {
         id: data.user.id,
-        mosque_id: mosqueId,
+        mosque_id: mosqueId ?? null,
         role,
         full_name: fullName,
-      });
+      },
+      { onConflict: "id" }
+    );
 
-    if (profileError) {
-      await supabase.auth.admin.deleteUser(data.user.id);
-      throw new Error(profileError.message);
-    }
+  if (profileError) {
+    await supabase.auth.admin.deleteUser(data.user.id);
+    throw new Error(profileError.message);
   }
 
   return { id: data.user.id, email, password };

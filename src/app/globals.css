@@ -138,3 +138,32 @@
     transform: translateX(-100%);
   }
 }
+
+/* ── SmartMasjid Mobile page transitions ─────────────────────────────── */
+
+@keyframes page-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes page-slide-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes page-scale {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-page-fade {
+  animation: page-fade 0.28s ease both;
+}
+
+.animate-page-slide-up {
+  animation: page-slide-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-page-scale {
+  animation: page-scale 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
