@@ -45,6 +45,21 @@ export default function SettingsPage() {
   const [postalColumnAvailable, setPostalColumnAvailable] = useState(true);
   const [taglineColumnAvailable, setTaglineColumnAvailable] = useState(true);
   const [districtColumnAvailable, setDistrictColumnAvailable] = useState(true);
+  const [testimonials, setTestimonials] = useState<any[]>([]);
+  const [testiName, setTestiName] = useState('');
+  const [testiRole, setTestiRole] = useState('');
+  const [testiRating, setTestiRating] = useState(5);
+  const [testiContent, setTestiContent] = useState('');
+  const [savingTesti, setSavingTesti] = useState(false);
+
+  const loadTestimonials = async (mid: string) => {
+    const { data } = await supabase
+      .from('testimonials')
+      .select('id, name, role, rating, content, is_approved')
+      .eq('mosque_id', mid)
+      .order('created_at', { ascending: false });
+    if (data) setTestimonials(data);
+  };
 
   const fetchDistricts = async (provId: string, cId: string) => {
     setLoadingDistricts(true);
@@ -100,6 +115,7 @@ export default function SettingsPage() {
         return;
       }
       setMosqueId(profile.mosque_id);
+      await loadTestimonials(profile.mosque_id);
 
       // Fetch mosque profile. Some deployments may not have `postal_code`, `tagline`, or `district` columns.
       let mosque: any = null;
@@ -223,61 +239,43 @@ export default function SettingsPage() {
     setSaving(true);
     const normalizedSlug = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
 
-    // Attempt upsert including postal_code; if column missing, retry without it.
-    let updatedMosque: any = null;
-    const buildPayload = (withPostal: boolean, withTagline: boolean, withDistrict: boolean) => ({
-      id: mosqueId,
+    // Build the update payload — skip columns that don't exist in this deployment
+    const payload: Record<string, unknown> = {
       name: name.trim(),
-      slug: normalizedSlug || null,
       address: address.trim(),
       city: city.trim(),
       province: province.trim(),
-      ...(withDistrict ? { district: districtName.trim() || null } : {}),
-      ...(withPostal ? { postal_code: postalCode.trim() || null } : {}),
-      ...(withTagline ? { tagline: tagline.trim() } : {}),
       logo_url: logoUrl || null,
-    });
-    const buildSelect = (withPostal: boolean, withTagline: boolean, withDistrict: boolean) =>
-      ["name", "slug", "address", "city", "province", ...(withDistrict ? ["district"] : []), ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), "logo_url"].join(", ");
-    const isColErr2 = (msg: string, col: string) =>
-      msg.toLowerCase().includes(col) || msg.toLowerCase().includes(`column "${col}"`);
+    };
+    if (normalizedSlug) payload.slug = normalizedSlug;
+    if (taglineColumnAvailable) payload.tagline = tagline.trim();
+    if (postalColumnAvailable) payload.postal_code = postalCode.trim() || null;
+    if (districtColumnAvailable) payload.district = districtName.trim() || null;
 
-    let withPostal = postalColumnAvailable;
-    let withTagline = taglineColumnAvailable;
-    let withDistrict = districtColumnAvailable;
-
-    for (let attempt = 0; attempt < 4; attempt++) {
-      const resp = await supabase
-        .from("mosques")
-        .upsert([buildPayload(withPostal, withTagline, withDistrict)], { onConflict: "id" })
-        .select(buildSelect(withPostal, withTagline, withDistrict))
-        .single();
-      if (!(resp as any).error) {
-        updatedMosque = (resp as any).data;
-        break;
-      }
-      const msg = ((resp as any).error?.message || "");
-      if (isColErr2(msg, "district")) { withDistrict = false; continue; }
-      if (isColErr2(msg, "tagline")) { withTagline = false; setTaglineColumnAvailable(false); continue; }
-      if (isColErr2(msg, "postal_code")) { withPostal = false; setPostalColumnAvailable(false); continue; }
-      setSaving(false);
-      alert((resp as any).error.message || "Gagal menyimpan profil");
-      return;
-    }
+    const { data: updatedMosque, error: saveError } = await supabase
+      .from("mosques")
+      .update(payload)
+      .eq("id", mosqueId)
+      .select()
+      .single();
 
     setSaving(false);
 
+    if (saveError) {
+      console.error("Save profile error:", saveError);
+      alert(`Gagal menyimpan: ${saveError.message}`);
+      return;
+    }
+
     if (updatedMosque) {
-      setName(updatedMosque.name || "");
-      setSlug(updatedMosque.slug || "");
-      setAddress(updatedMosque.address || "");
-      setCity(updatedMosque.city || "");
-      setProvince(updatedMosque.province || "");
-      if (withTagline && updatedMosque.tagline !== undefined) setTagline(updatedMosque.tagline || "");
-      setLogoUrl(updatedMosque.logo_url || "");
-      if (withPostal && updatedMosque.postal_code !== undefined) {
-        setPostalCode(updatedMosque.postal_code || "");
-      }
+      setName((updatedMosque as any).name || "");
+      setSlug((updatedMosque as any).slug || "");
+      setAddress((updatedMosque as any).address || "");
+      setCity((updatedMosque as any).city || "");
+      setProvince((updatedMosque as any).province || "");
+      if (taglineColumnAvailable) setTagline((updatedMosque as any).tagline || "");
+      setLogoUrl((updatedMosque as any).logo_url || "");
+      if (postalColumnAvailable) setPostalCode((updatedMosque as any).postal_code || "");
     }
 
     await logAuditAction({
@@ -527,6 +525,14 @@ export default function SettingsPage() {
                   >
                     {copied === "landing" ? "✓" : "Copy"}
                   </button>
+                  <a
+                    href={landingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg text-sm shrink-0 text-white font-medium"
+                  >
+                    Buka
+                  </a>
                 </div>
               </div>
             )}
@@ -542,6 +548,14 @@ export default function SettingsPage() {
                   >
                     {copied === "tv" ? "✓" : "Copy"}
                   </button>
+                  <a
+                    href={tvUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg text-sm shrink-0 text-white font-medium"
+                  >
+                    Buka
+                  </a>
                 </div>
               </div>
             )}
@@ -624,6 +638,106 @@ export default function SettingsPage() {
                 >Upload</button>
               </div>
             </div>
+          </section>
+
+          {/* TESTIMONI */}
+          <section className="bg-slate-900 rounded-xl p-6 flex flex-col gap-4">
+            <h2 className="text-lg font-semibold">Testimoni</h2>
+            <p className="text-sm text-slate-400 -mt-2">Tambahkan testimoni dari pengurus masjid untuk ditampilkan di landing page.</p>
+
+            <div className="flex flex-col gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Nama</span>
+                <input
+                  className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2"
+                  placeholder="Ust. Ahmad Fauzi"
+                  value={testiName}
+                  onChange={(e) => setTestiName(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Jabatan / Peran</span>
+                <input
+                  className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2"
+                  placeholder="Ketua DKM"
+                  value={testiRole}
+                  onChange={(e) => setTestiRole(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Rating</span>
+                <select
+                  className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2"
+                  value={testiRating}
+                  onChange={(e) => setTestiRating(Number(e.target.value))}
+                >
+                  {[5, 4, 3, 2, 1].map((n) => (
+                    <option key={n} value={n}>{"★".repeat(n)} ({n})</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Isi Testimoni</span>
+                <textarea
+                  className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 min-h-[80px]"
+                  placeholder="SmartMasjid sangat membantu pengelolaan masjid kami..."
+                  value={testiContent}
+                  onChange={(e) => setTestiContent(e.target.value)}
+                />
+              </label>
+              <button
+                disabled={savingTesti || !testiName.trim() || !testiContent.trim() || !mosqueId}
+                onClick={async () => {
+                  if (!mosqueId) return;
+                  setSavingTesti(true);
+                  const { error } = await supabase.from("testimonials").insert({
+                    mosque_id: mosqueId,
+                    name: testiName.trim(),
+                    role: testiRole.trim(),
+                    rating: testiRating,
+                    content: testiContent.trim(),
+                  });
+                  setSavingTesti(false);
+                  if (error) { alert(`Gagal: ${error.message}`); return; }
+                  setTestiName("");
+                  setTestiRole("");
+                  setTestiRating(5);
+                  setTestiContent("");
+                  await loadTestimonials(mosqueId);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-5 py-2 rounded-lg font-semibold w-fit text-sm"
+              >
+                {savingTesti ? "Menyimpan..." : "Tambah Testimoni"}
+              </button>
+            </div>
+
+            {testimonials.length > 0 && (
+              <div className="flex flex-col gap-2 mt-2">
+                <h3 className="text-sm font-semibold text-slate-300">Testimoni tersimpan</h3>
+                {testimonials.map((t) => (
+                  <div key={t.id} className="bg-slate-800 rounded-lg px-4 py-3 flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold">
+                        {t.name}
+                        {t.role && <span className="text-slate-400 font-normal"> — {t.role}</span>}
+                      </div>
+                      <div className="text-yellow-400 text-xs mt-0.5">{"★".repeat(t.rating)}</div>
+                      <div className="text-slate-400 text-xs mt-1 line-clamp-2">{t.content}</div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!confirm("Hapus testimoni ini?")) return;
+                        await supabase.from("testimonials").delete().eq("id", t.id);
+                        await loadTestimonials(mosqueId!);
+                      }}
+                      className="text-red-400 hover:text-red-300 text-xs shrink-0 mt-0.5"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

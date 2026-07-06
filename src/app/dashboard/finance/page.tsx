@@ -47,6 +47,9 @@ export default function FinancePage() {
   const [amount, setAmount] =
     useState(0);
 
+  const [amountDisplay, setAmountDisplay] =
+    useState("");
+
   const [note, setNote] =
     useState("");
 
@@ -147,6 +150,7 @@ export default function FinancePage() {
       setTitle("");
       setCategory("");
       setAmount(0);
+      setAmountDisplay("");
       setNote("");
 
       await logAuditAction({
@@ -503,16 +507,15 @@ const exportPDF =
           />
 
           <input
-            type="number"
-            placeholder="Jumlah"
-            value={amount}
-            onChange={(e) =>
-              setAmount(
-                Number(
-                  e.target.value
-                )
-              )
-            }
+            type="text"
+            placeholder="Rp 0"
+            value={amountDisplay}
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "");
+              const num = digits ? parseInt(digits, 10) : 0;
+              setAmount(num);
+              setAmountDisplay(num > 0 ? `Rp ${num.toLocaleString("id-ID")}` : "");
+            }}
             className="bg-slate-800 p-4 rounded-2xl"
           />
 

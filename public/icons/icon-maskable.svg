@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Full bleed background (maskable - no rounded corners) -->
+  <rect width="512" height="512" fill="#059669"/>
+
+  <!-- Safe zone is 80% center = 102..410 -->
+  <!-- Mosque dome -->
+  <ellipse cx="256" cy="218" rx="86" ry="68" fill="#ffffff"/>
+  <polygon points="256,136 218,218 294,218" fill="#ffffff"/>
+
+  <!-- Minaret left -->
+  <rect x="142" y="212" width="30" height="120" rx="8" fill="#ffffff"/>
+  <ellipse cx="157" cy="212" rx="15" ry="22" fill="#ffffff"/>
+  <polygon points="157,170 143,212 171,212" fill="#d1fae5"/>
+
+  <!-- Minaret right -->
+  <rect x="340" y="212" width="30" height="120" rx="8" fill="#ffffff"/>
+  <ellipse cx="355" cy="212" rx="15" ry="22" fill="#ffffff"/>
+  <polygon points="355,170 341,212 369,212" fill="#d1fae5"/>
+
+  <!-- Main body -->
+  <rect x="170" y="286" width="172" height="88" rx="8" fill="#ffffff"/>
+
+  <!-- Door -->
+  <path d="M238 374 L238 322 Q256 304 274 322 L274 374 Z" fill="#059669"/>
+
+  <!-- Crescent -->
+  <path d="M256 108 Q274 92 274 108 Q256 118 238 108 Q238 92 256 108 Z" fill="#fbbf24"/>
+  <circle cx="268" cy="100" r="11" fill="#fbbf24"/>
+  <circle cx="261" cy="95" r="8" fill="#059669"/>
+</svg>

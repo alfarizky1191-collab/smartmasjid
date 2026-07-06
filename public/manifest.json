@@ -1,0 +1,17 @@
+{
+  "name": "SmartMasjid",
+  "short_name": "SmartMasjid",
+  "description": "Aplikasi Masjid Digital — Jadwal Sholat, Pengumuman & Donasi",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

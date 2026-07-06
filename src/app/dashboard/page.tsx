@@ -7,6 +7,7 @@ import AdminSidebar from "@/components/Adminsidebar";
 import { isKnownRole, canAccess, defaultRoute } from "@/lib/rbac";
 import { extractStoragePath } from "@/lib/storage-utils";
 import { logAuditAction } from "@/lib/audit";
+import { ALL_THEMES, type TVThemeConfig } from "@/lib/themes";
 
 export default function DashboardPage() {
 
@@ -29,6 +30,8 @@ export default function DashboardPage() {
   const [slides, setSlides] = useState<any[]>([]);
   const [eventCount, setEventCount] = useState(0);
   const [officerCount, setOfficerCount] = useState(0);
+  const [tvTheme, setTvTheme] = useState<string>("classic");
+  const [savingTheme, setSavingTheme] = useState(false);
 
   useEffect(() => {
 
@@ -91,6 +94,8 @@ export default function DashboardPage() {
         setRunningTextSpeed(
           mosque.running_text_speed || 20
         );
+
+        setTvTheme(mosque.tv_theme || "classic");
       }
 
       const {
@@ -101,6 +106,8 @@ export default function DashboardPage() {
 
         .select("*")
 
+        .eq("mosque_id", userMosqueId)
+
         .order("created_at", {
           ascending: false,
         });
@@ -110,15 +117,15 @@ export default function DashboardPage() {
         setSlides(slidesData);
       }
 
-      loadAnnouncements();
+      loadAnnouncements(userMosqueId);
 
-      // Summary counts
+      // Summary counts — scoped to this mosque
       const { count: evCount } = await supabase
-        .from("events").select("*", { count: "exact", head: true });
+        .from("events").select("*", { count: "exact", head: true }).eq("mosque_id", userMosqueId);
       if (evCount !== null) setEventCount(evCount);
 
       const { count: offCount } = await supabase
-        .from("officers").select("*", { count: "exact", head: true });
+        .from("officers").select("*", { count: "exact", head: true }).eq("mosque_id", userMosqueId);
       if (offCount !== null) setOfficerCount(offCount);
     };
 
@@ -126,7 +133,10 @@ export default function DashboardPage() {
 
   }, []);
 
-  const loadAnnouncements = async () => {
+  const loadAnnouncements = async (mid?: string) => {
+
+    const targetId = mid ?? mosqueId;
+    if (!targetId) return;
 
     const {
       data,
@@ -135,6 +145,8 @@ export default function DashboardPage() {
       .from("announcements")
 
       .select("*")
+
+      .eq("mosque_id", targetId)
 
       .order("created_at", {
         ascending: false,
@@ -165,7 +177,9 @@ export default function DashboardPage() {
           title: announcement,
         })
 
-        .eq("id", editingId);
+        .eq("id", editingId)
+
+        .eq("mosque_id", mosqueId);
 
       await logAuditAction({
         action: "Update Announcement",
@@ -223,7 +237,9 @@ export default function DashboardPage() {
 
       .delete()
 
-      .eq("id", id);
+      .eq("id", id)
+
+      .eq("mosque_id", mosqueId);
 
     await logAuditAction({
       action: "Delete Announcement",
@@ -298,7 +314,12 @@ export default function DashboardPage() {
 
   const handleSaveSettings = async () => {
 
-    await supabase
+    if (!mosqueId) {
+      alert("Data masjid belum dimuat. Coba refresh halaman.");
+      return;
+    }
+
+    const { error } = await supabase
 
       .from("mosques")
 
@@ -310,6 +331,12 @@ export default function DashboardPage() {
 
       .eq("id", mosqueId);
 
+    if (error) {
+      console.error("Save settings error:", error);
+      alert(`Gagal menyimpan: ${error.message}`);
+      return;
+    }
+
     await logAuditAction({
       action: "Settings Update",
       module: "Settings",
@@ -320,6 +347,26 @@ export default function DashboardPage() {
     });
 
     alert("Setting berhasil disimpan");
+  };
+
+  const handleSaveTheme = async () => {
+    if (!mosqueId) return;
+    setSavingTheme(true);
+    const { error } = await supabase
+      .from("mosques")
+      .update({ tv_theme: tvTheme })
+      .eq("id", mosqueId);
+    setSavingTheme(false);
+    if (error) {
+      alert(`Gagal menyimpan tema: ${error.message}`);
+      return;
+    }
+    await logAuditAction({
+      action: "Settings Update",
+      module: "Settings",
+      metadata: { tv_theme: tvTheme },
+    });
+    alert("Tema TV berhasil disimpan");
   };
 
   const handleUploadSlide = async (e: any) => {
@@ -372,6 +419,8 @@ export default function DashboardPage() {
 
       .select("*")
 
+      .eq("mosque_id", mosqueId)
+
       .order("created_at", {
         ascending: false,
       });
@@ -410,7 +459,9 @@ export default function DashboardPage() {
 
       .delete()
 
-      .eq("id", id);
+      .eq("id", id)
+
+      .eq("mosque_id", mosqueId);
 
     await logAuditAction({
       action: "Slide Delete",
@@ -565,6 +616,7 @@ export default function DashboardPage() {
             }
             className="bg-slate-800 p-4 rounded-2xl"
           />
+          <p className='text-xs text-slate-400 mt-1'>Durasi hitung mundur iqomah setelah adzan selesai, dalam detik (contoh: 300 = 5 menit).</p>
 
           <input
             type="number"
@@ -577,6 +629,7 @@ export default function DashboardPage() {
             }
             className="bg-slate-800 p-4 rounded-2xl"
           />
+          <p className='text-xs text-slate-400 mt-1'>Kecepatan teks berjalan. Semakin kecil angka, semakin cepat (rekomendasi: 20–40 detik).</p>
 
           <button
             onClick={handleSaveSettings}
@@ -584,6 +637,99 @@ export default function DashboardPage() {
           >
             Simpan Setting
           </button>
+
+        </div>
+
+        {/* TEMA TV DISPLAY */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col gap-5">
+
+          <div>
+            <h2 className="text-3xl font-bold text-emerald-400">
+              Tema TV Display
+            </h2>
+            <p className="text-slate-400 mt-1 text-sm">
+              Pilih tampilan visual untuk layar TV masjid Anda.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ALL_THEMES.map((theme: TVThemeConfig) => {
+              const isSelected = tvTheme === theme.id;
+              const isPro = theme.tier === "pro";
+              return (
+                <button
+                  key={theme.id}
+                  onClick={() => setTvTheme(theme.id)}
+                  className={`relative text-left rounded-xl border-2 transition-all overflow-hidden ${
+                    isSelected
+                      ? "border-emerald-400 ring-2 ring-emerald-400/40"
+                      : "border-slate-700 hover:border-slate-600"
+                  }`}
+                >
+                  {/* Color preview strip */}
+                  <div
+                    className="h-16 w-full"
+                    style={{ background: theme.colors.background }}
+                  >
+                    <div className="flex h-full items-end pb-2 px-3 gap-1.5">
+                      {[
+                        theme.colors.primary,
+                        theme.colors.secondary,
+                        theme.colors.prayerHighlight,
+                        theme.colors.timeAccent,
+                        theme.colors.surface,
+                      ].map((color, i) => (
+                        <span
+                          key={i}
+                          className="w-5 h-5 rounded-full border border-black/20 shrink-0"
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Theme info */}
+                  <div className="bg-slate-800 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white leading-tight">{theme.name}</span>
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide ${
+                          isPro
+                            ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
+                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        }`}
+                      >
+                        {isPro ? "Pro" : "Free"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{theme.description}</p>
+                  </div>
+
+                  {/* Selected checkmark */}
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center">
+                      <span className="text-black text-xs font-bold">✓</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSaveTheme}
+              disabled={savingTheme}
+              className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-black font-bold px-6 py-3 rounded-2xl"
+            >
+              {savingTheme ? "Menyimpan..." : "Simpan Tema"}
+            </button>
+            <span className="text-sm text-slate-400">
+              Tema aktif: <span className="text-emerald-300 font-medium">
+                {ALL_THEMES.find((t: TVThemeConfig) => t.id === tvTheme)?.name ?? tvTheme}
+              </span>
+            </span>
+          </div>
 
         </div>
 

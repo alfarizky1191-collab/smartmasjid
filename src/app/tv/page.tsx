@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { formatIndonesianDateWithDay } from "@/lib/date-utils";
+import { TVThemeProvider } from "@/lib/themes/ThemeProvider";
+import RoyalOttomanLayout from "@/lib/themes/layouts/RoyalOttomanLayout";
 
 type MosqueLookup = {
   id: string | null;
@@ -253,7 +255,10 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
   const alarmRef =
   useRef<HTMLAudioElement | null>(
     null
-  );  
+  );
+
+  const isTestAdzanPlaying = useRef<boolean>(false);
+  const isTestAlarmPlaying = useRef<boolean>(false);
 
   const triggeredRef =
     useRef<string | null>(null);
@@ -738,6 +743,24 @@ if (slidesData) {
       }, () => { loadTodayOfficers(); })
       .subscribe();
 
+    // REALTIME SLIDES — reload when admin adds/removes slides for this mosque
+    const slidesChannel = supabase
+      .channel(`slides-realtime-${mosqueId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "slides",
+        filter: `mosque_id=eq.${mosqueId}`,
+      }, async () => {
+        const { data } = await supabase
+          .from("slides")
+          .select("*")
+          .eq("mosque_id", mosqueId)
+          .order("created_at", { ascending: false });
+        if (data) setSlides(data);
+      })
+      .subscribe();
+
     return () => {
 
       supabase.removeChannel(
@@ -754,6 +777,10 @@ if (slidesData) {
 
       supabase.removeChannel(
         officerChannel
+      );
+
+      supabase.removeChannel(
+        slidesChannel
       );
 
     };
@@ -893,6 +920,16 @@ const prayers = [
     time:
       prayerTimes?.Isha,
   },
+];
+
+const prayerGrid = [
+  ...(isRamadhan ? [{ name: 'Imsak', time: prayerTimes?.Imsak }] : []),
+  { name: 'Subuh', time: prayerTimes?.Fajr },
+  { name: 'Syuruk', time: prayerTimes?.Sunrise },
+  { name: 'Dzuhur', time: prayerTimes?.Dhuhr },
+  { name: 'Ashar', time: prayerTimes?.Asr },
+  { name: 'Maghrib', time: prayerTimes?.Maghrib },
+  { name: 'Isya', time: prayerTimes?.Isha },
 ];
 
   // =========================
@@ -1322,6 +1359,12 @@ for (
 
               }, 600000);
 
+              // Play alarm when iqomah ends
+              if (alarmRef.current) {
+                alarmRef.current.currentTime = 0;
+                alarmRef.current.play().catch(() => {});
+              }
+
               return 0;
             }
 
@@ -1441,23 +1484,85 @@ for (
   }
 
   return (
+    <TVThemeProvider themeId={mosque?.tv_theme ?? "classic"}>
 
-    <main className={`
+    {/* ── Royal Ottoman Layout ── */}
+    {mosque?.tv_theme === "royal-ottoman" && (
+      <RoyalOttomanLayout
+        mosque={mosque}
+        time={time}
+        prayerGrid={prayerGrid}
+        nextPrayer={nextPrayer}
+        countdown={countdown}
+        showAdzan={showAdzan}
+        currentPrayer={currentPrayer}
+        iqomahCountdown={iqomahCountdown}
+        showPrayerMode={showPrayerMode}
+        autoAdzanEnabled={autoAdzanEnabled}
+        setAutoAdzanEnabled={setAutoAdzanEnabled}
+        stopAdzan={stopAdzan}
+        goFullscreen={goFullscreen}
+        onTestAdzan={() => {
+          if (isTestAdzanPlaying.current) {
+            audioRef.current?.pause();
+            if (audioRef.current) audioRef.current.currentTime = 0;
+            isTestAdzanPlaying.current = false;
+          } else {
+            if (audioRef.current) {
+              audioRef.current.volume = 0.8;
+              audioRef.current.play();
+              isTestAdzanPlaying.current = true;
+              audioRef.current.onended = () => { isTestAdzanPlaying.current = false; };
+            }
+          }
+        }}
+        onTestAlarm={() => {
+          if (isTestAlarmPlaying.current) {
+            alarmRef.current?.pause();
+            if (alarmRef.current) alarmRef.current.currentTime = 0;
+            isTestAlarmPlaying.current = false;
+          } else {
+            if (alarmRef.current) {
+              alarmRef.current.volume = 0.8;
+              alarmRef.current.play();
+              isTestAlarmPlaying.current = true;
+              alarmRef.current.onended = () => { isTestAlarmPlaying.current = false; };
+            }
+          }
+        }}
+        isFriday={isFriday}
+        showJumatMode={showJumatMode}
+        announcements={announcements}
+        events={events}
+        slides={slides}
+        currentSlide={currentSlide}
+        todayOfficers={todayOfficers}
+        qrisUrl={qrisUrl}
+        runningText={mosque?.running_text}
+        runningTextSpeed={mosque?.running_text_speed}
+      />
+    )}
 
-      min-h-screen
-      p-6
-      flex
-      flex-col
-      gap-6
-      overflow-hidden
-      transition-all
-      duration-500
-
-      ${showAdzan
-        ? "bg-yellow-950 text-white"
-        : "bg-black text-white"}
-
-    `}>
+    {/* ── Default / Classic Layout ── */}
+    {mosque?.tv_theme !== "royal-ottoman" && (
+      <main
+        className={`
+        min-h-screen
+        p-6
+        flex
+        flex-col
+        gap-6
+        overflow-hidden
+        transition-all
+        duration-500
+        ${showAdzan ? "bg-yellow-950 text-white" : "text-white"}
+      `}
+      style={showAdzan ? undefined : {
+        background: "var(--theme-background, #000)",
+        color: "var(--theme-text-primary, #fff)",
+        fontFamily: "var(--theme-font, inherit)",
+      }}
+    >
 
       {/* HEADER */}
       <div className="flex items-center justify-between">
@@ -1465,31 +1570,30 @@ for (
         <div className="flex items-center gap-6">
 
           {mosque?.logo_url && (
-
             <img
-              src={
-                mosque.logo_url
-              }
+              src={mosque.logo_url}
               alt="Logo"
-              className="w-28 h-28 rounded-full object-cover border-4 border-emerald-400 bg-white"
+              className="w-28 h-28 rounded-full object-cover bg-white"
+              style={{
+                border: "4px solid var(--theme-primary, #10b981)",
+              }}
             />
-
           )}
 
           <div>
 
-            <h1 className="text-6xl font-bold text-emerald-400">
-
+            <h1
+              className="text-6xl font-bold"
+              style={{ color: "var(--theme-primary, #10b981)" }}
+            >
               {mosque?.name}
-
             </h1>
 
-            <p className="text-3xl text-slate-300 mt-2">
-
-              {getLocationLabel(
-                mosque
-              )}
-
+            <p
+              className="text-3xl mt-2"
+              style={{ color: "var(--theme-text-secondary, #94a3b8)" }}
+            >
+              {getLocationLabel(mosque)}
             </p>
 
           </div>
@@ -1499,50 +1603,53 @@ for (
         <div className="flex items-center gap-4">
 
           <button
-            onClick={
-              goFullscreen
-            }
-            className="bg-emerald-500 px-8 py-4 rounded-2xl text-black font-bold text-2xl"
+            onClick={goFullscreen}
+            className="px-8 py-4 rounded-2xl text-black font-bold text-2xl"
+            style={{ backgroundColor: "var(--theme-primary, #10b981)" }}
           >
             Fullscreen
           </button>
 <button
   onClick={() => {
-
-    if (
-      audioRef.current
-    ) {
-
-      audioRef.current.volume =
-        0.8;
-
-      audioRef.current.play();
+    if (isTestAdzanPlaying.current) {
+      audioRef.current?.pause();
+      if (audioRef.current) audioRef.current.currentTime = 0;
+      isTestAdzanPlaying.current = false;
+    } else {
+      if (audioRef.current) {
+        audioRef.current.volume = 0.8;
+        audioRef.current.play();
+        isTestAdzanPlaying.current = true;
+        audioRef.current.onended = () => { isTestAdzanPlaying.current = false; };
+      }
     }
   }}
   className="bg-blue-500 text-white px-6 py-4 rounded-2xl font-bold"
 >
 
-  Test Adzan
+  ▶ / ■ Test Adzan
 
 </button>
 
 <button
   onClick={() => {
-
-    if (
-      alarmRef.current
-    ) {
-
-      alarmRef.current.volume =
-        0.8;
-
-      alarmRef.current.play();
+    if (isTestAlarmPlaying.current) {
+      alarmRef.current?.pause();
+      if (alarmRef.current) alarmRef.current.currentTime = 0;
+      isTestAlarmPlaying.current = false;
+    } else {
+      if (alarmRef.current) {
+        alarmRef.current.volume = 0.8;
+        alarmRef.current.play();
+        isTestAlarmPlaying.current = true;
+        alarmRef.current.onended = () => { isTestAlarmPlaying.current = false; };
+      }
     }
   }}
   className="bg-yellow-500 text-black px-6 py-4 rounded-2xl font-bold"
 >
 
-  Test Alarm
+  ▶ / ■ Test Alarm
 
 </button>
           <button
@@ -1551,7 +1658,8 @@ for (
                 !autoAdzanEnabled
               )
             }
-            className="bg-emerald-500 px-8 py-4 rounded-2xl text-black font-bold text-2xl"
+            className="px-8 py-4 rounded-2xl text-black font-bold text-2xl"
+            style={{ backgroundColor: "var(--theme-primary, #10b981)" }}
           >
 
             {autoAdzanEnabled
@@ -1649,19 +1757,19 @@ for (
       )}
 
       {/* COUNTDOWN */}
-      <div className={`
-
-        rounded-3xl
-        p-8
-        text-center
-        transition-all
-        duration-500
-
-        ${showAdzan
-          ? "bg-yellow-400 text-black animate-pulse"
-          : "bg-emerald-500 text-black"}
-
-      `}>
+      <div
+        className={`
+          rounded-3xl
+          p-8
+          text-center
+          transition-all
+          duration-500
+          ${showAdzan ? "bg-yellow-400 text-black animate-pulse" : "text-black"}
+        `}
+        style={showAdzan ? undefined : {
+          backgroundColor: "var(--theme-primary, #10b981)",
+        }}
+      >
 
         {showPrayerMode ? (
 
@@ -1759,37 +1867,40 @@ for (
       {/* JADWAL */}
       <div className="grid grid-cols-7 gap-4">
 
-        {prayers.map(
+        {prayerGrid.map(
           (item) => (
-
-            
             <div
-            
               key={item.name}
-              className="bg-slate-900 rounded-3xl p-6 text-center"
+              className="rounded-3xl p-6 text-center"
+              style={{
+                backgroundColor: "var(--theme-surface, #0f172a)",
+                borderRadius: "var(--theme-radius, 1.5rem)",
+              }}
             >
-
-              <h2 className="text-3xl font-bold text-emerald-400">
-
+              <h2
+                className="text-3xl font-bold"
+                style={{ color: "var(--theme-prayer-highlight, #10b981)" }}
+              >
                 {item.name}
-
               </h2>
 
-              <p className="text-5xl font-bold mt-6">
-
+              <p
+                className="text-5xl font-bold mt-6"
+                style={{ color: "var(--theme-text-primary, #fff)" }}
+              >
                 {item.time}
-
               </p>
-
             </div>
-            
           )
         )}
 
       </div>
 
 {/* SLIDER */}
-<div className="bg-slate-900 rounded-3xl overflow-hidden h-[350px] relative mb-6">
+<div
+  className="rounded-3xl overflow-hidden h-[350px] relative mb-6"
+  style={{ backgroundColor: "var(--theme-surface, #0f172a)" }}
+>
 
   {slides.length > 0 ? (
 
@@ -1812,144 +1923,172 @@ for (
 
   )}
 {qrisUrl && (
-
-  <div className="bg-slate-900 rounded-3xl p-8 flex flex-col items-center justify-center gap-6">
-
-    <h2 className="text-5xl font-bold text-emerald-400">
-
+  <div
+    className="rounded-3xl p-8 flex flex-col items-center justify-center gap-6"
+    style={{ backgroundColor: "var(--theme-surface, #0f172a)" }}
+  >
+    <h2
+      className="text-5xl font-bold"
+      style={{ color: "var(--theme-primary, #10b981)" }}
+    >
       Donasi Masjid
-
     </h2>
 
     <img
       src={qrisUrl}
       alt="QRIS"
-      className="w-[350px] rounded-3xl border-4 border-emerald-400"
+      className="w-[350px] rounded-3xl"
+      style={{ border: "4px solid var(--theme-primary, #10b981)" }}
     />
 
-    <p className="text-3xl text-white text-center">
-
+    <p
+      className="text-3xl text-center"
+      style={{ color: "var(--theme-text-primary, #fff)" }}
+    >
       Scan QRIS untuk infaq & donasi masjid
-
     </p>
   </div>
-
 )}
 </div>
 
       {/* PETUGAS HARI INI */}
-      <div className="bg-slate-900 rounded-3xl p-6">
-        <h2 className="text-4xl font-bold text-emerald-400 mb-6 text-center">
+      <div
+        className="rounded-3xl p-6"
+        style={{ backgroundColor: "var(--theme-surface, #0f172a)" }}
+      >
+        <h2
+          className="text-4xl font-bold mb-6 text-center"
+          style={{ color: "var(--theme-primary, #10b981)" }}
+        >
           Petugas Hari Ini
         </h2>
         {todayOfficers.length === 0 ? (
-          <p className="text-2xl text-slate-400 text-center">Belum ada jadwal petugas hari ini</p>
+          <p
+            className="text-2xl text-center"
+            style={{ color: "var(--theme-text-secondary, #64748b)" }}
+          >
+            Belum ada jadwal petugas hari ini
+          </p>
         ) : (
           <div className="flex flex-col gap-3">
             {todayOfficers.map((o, i) => (
-              <div key={i} className="flex justify-between items-center bg-slate-800 rounded-2xl px-6 py-4">
-                <span className="text-2xl font-semibold text-yellow-400 capitalize">{o.role}</span>
-                <span className="text-2xl text-white">{o.name}</span>
+              <div
+                key={i}
+                className="flex justify-between items-center rounded-2xl px-6 py-4"
+                style={{ backgroundColor: "var(--theme-border, #1e293b)" }}
+              >
+                <span
+                  className="text-2xl font-semibold capitalize"
+                  style={{ color: "var(--theme-time-accent, #fbbf24)" }}
+                >
+                  {o.role}
+                </span>
+                <span
+                  className="text-2xl"
+                  style={{ color: "var(--theme-text-primary, #fff)" }}
+                >
+                  {o.name}
+                </span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="bg-slate-900 rounded-3xl p-6">
-
-        <h2 className="text-4xl font-bold text-emerald-400 mb-6 text-center">
-
+      <div
+        className="rounded-3xl p-6"
+        style={{ backgroundColor: "var(--theme-surface, #0f172a)" }}
+      >
+        <h2
+          className="text-4xl font-bold mb-6 text-center"
+          style={{ color: "var(--theme-primary, #10b981)" }}
+        >
           Jadwal Kegiatan
-
         </h2>
 
         <div className="flex flex-col gap-4">
-
           {events.map(
             (item) => (
-
               <div
                 key={item.id}
-                className="bg-slate-800 rounded-2xl p-4"
+                className="rounded-2xl p-4"
+                style={{ backgroundColor: "var(--theme-border, #1e293b)" }}
               >
-
-                <h3 className="text-3xl font-bold text-white">
-
+                <h3
+                  className="text-3xl font-bold"
+                  style={{ color: "var(--theme-text-primary, #fff)" }}
+                >
                   {item.title}
-
                 </h3>
 
-                <p className="text-xl text-slate-300 mt-2">
-
+                <p
+                  className="text-xl mt-2"
+                  style={{ color: "var(--theme-text-secondary, #94a3b8)" }}
+                >
                   {item.speaker}
-
                 </p>
 
-                <p className="text-slate-400 mt-2">
-
+                <p
+                  className="mt-2"
+                  style={{ color: "var(--theme-text-secondary, #64748b)" }}
+                >
                   {formatIndonesianDateWithDay(item.event_date)}
-
                   {" • "}
-
                   {item.event_time}
-
                 </p>
-
               </div>
             )
           )}
-
         </div>
-
       </div>
       {/* PENGUMUMAN */}
-      <div className="bg-slate-900 rounded-3xl p-6 flex flex-col gap-4 flex-1 overflow-hidden">
-
-        <h2 className="text-4xl font-bold text-emerald-400">
+      <div
+        className="rounded-3xl p-6 flex flex-col gap-4 flex-1 overflow-hidden"
+        style={{ backgroundColor: "var(--theme-surface, #0f172a)" }}
+      >
+        <h2
+          className="text-4xl font-bold"
+          style={{ color: "var(--theme-primary, #10b981)" }}
+        >
           Pengumuman
         </h2>
 
         {announcements.map(
           (item) => (
-
             <div
               key={item.id}
-              className="bg-slate-800 rounded-2xl p-6"
+              className="rounded-2xl p-6"
+              style={{ backgroundColor: "var(--theme-border, #1e293b)" }}
             >
-
-              <p className="text-4xl text-center font-bold">
-
+              <p
+                className="text-4xl text-center font-bold"
+                style={{ color: "var(--theme-text-primary, #fff)" }}
+              >
                 {item.title}
-
               </p>
-
             </div>
           )
         )}
-
       </div>
 
       {/* RUNNING TEXT */}
-     <div className="w-full overflow-hidden bg-slate-900 rounded-3xl py-4">
-
-  <div
-    className="text-4xl font-bold text-emerald-400 whitespace-nowrap"
-    style={{
-      display: "inline-block",
-      minWidth: "100%",
-      paddingLeft: "100%",
-      animation: `marquee ${
-        mosque?.running_text_speed || 20
-      }s linear infinite`,
-    }}
-  >
-
-    {mosque?.running_text}
-
-  </div>
-
-</div>
+      <div
+        className="w-full overflow-hidden rounded-3xl py-4"
+        style={{ backgroundColor: "var(--theme-surface, #0f172a)" }}
+      >
+        <div
+          className="text-4xl font-bold whitespace-nowrap"
+          style={{
+            color: "var(--theme-primary, #10b981)",
+            display: "inline-block",
+            minWidth: "100%",
+            paddingLeft: "100%",
+            animation: `marquee ${mosque?.running_text_speed || 20}s linear infinite`,
+          }}
+        >
+          {mosque?.running_text}
+        </div>
+      </div>
 
       {/* CSS */}
       <style jsx>{`
@@ -1981,6 +2120,10 @@ for (
 />
 
     </main>
+    )}
+    {/* ── End Default Layout ── */}
+
+    </TVThemeProvider>
   );
 }
   
