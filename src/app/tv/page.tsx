@@ -1105,223 +1105,111 @@ return () =>
   // AUTO ADZAN
   // =========================
 
+  // Refs untuk state yang dibutuhkan di dalam interval (hindari stale closure)
+  const isAdzanPlayingRef = useRef(false);
+  const isIqomahRef = useRef(false);
+  const autoAdzanEnabledRef = useRef(autoAdzanEnabled);
+  const mosqueRef = useRef(mosque);
+  const prayerTimesRef = useRef(prayerTimes);
+
+  // Sync refs dengan state terbaru
+  useEffect(() => { autoAdzanEnabledRef.current = autoAdzanEnabled; }, [autoAdzanEnabled]);
+  useEffect(() => { mosqueRef.current = mosque; }, [mosque]);
+  useEffect(() => { prayerTimesRef.current = prayerTimes; }, [prayerTimes]);
+  useEffect(() => { isAdzanPlayingRef.current = isAdzanPlaying; }, [isAdzanPlaying]);
+  useEffect(() => { isIqomahRef.current = isIqomah; }, [isIqomah]);
+
+  // Helper: format waktu HH:MM dari Date (selalu pakai titik dua, konsisten dengan Aladhan)
+  const formatHHMM = (date: Date) => {
+    const hh = String(date.getHours()).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  };
+
   useEffect(() => {
+    if (!prayerTimes) return;
 
-    if (
-      !prayerTimes ||
-      !autoAdzanEnabled
-    ) return;
+    const interval = setInterval(() => {
+      if (!autoAdzanEnabledRef.current) return;
+      if (isAdzanPlayingRef.current || isIqomahRef.current) return;
 
-    const now =
-  new Date();
+      const currentMosque = mosqueRef.current;
+      const currentPrayerTimes = prayerTimesRef.current;
+      if (!currentPrayerTimes) return;
 
-const current =
-  now.toLocaleTimeString(
-    "id-ID",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }
-  );
+      const now = new Date();
+      const currentTime = formatHHMM(now);
 
-if (
-  isAdzanPlaying ||
-  isIqomah
-) return;
+      const adzanList = [
+        {
+          name: "Subuh",
+          time: currentPrayerTimes.Fajr,
+          audio: currentMosque?.adzan_subuh_url || "/audio/adzan-subuh.mp3",
+        },
+        {
+          name: "Dzuhur",
+          time: currentPrayerTimes.Dhuhr,
+          audio: currentMosque?.adzan_url || "/audio/adzan.mp3",
+        },
+        {
+          name: "Ashar",
+          time: currentPrayerTimes.Asr,
+          audio: currentMosque?.adzan_url || "/audio/adzan.mp3",
+        },
+        {
+          name: "Maghrib",
+          time: currentPrayerTimes.Maghrib,
+          audio: currentMosque?.adzan_url || "/audio/adzan.mp3",
+        },
+        {
+          name: "Isya",
+          time: currentPrayerTimes.Isha,
+          audio: currentMosque?.adzan_url || "/audio/adzan.mp3",
+        },
+      ];
 
-for (
-  const prayer
-  of prayers
-) {
+      for (const prayer of adzanList) {
+        // Normalisasi: ambil hanya HH:MM dari waktu sholat (Aladhan kadang kirim "04:30 (WIB)")
+        const prayerHHMM = prayer.time ? prayer.time.substring(0, 5) : null;
+        const key = `${prayer.name}-${prayerHHMM}`;
 
-  if (
-    prayer.time === current &&
-    triggeredRef.current !==
-      prayer.name
-  ) {
+        if (prayerHHMM && currentTime === prayerHHMM && triggeredRef.current !== key) {
+          triggeredRef.current = key;
 
-    triggeredRef.current =
-      prayer.name;
+          setCurrentPrayer(prayer.name);
+          setShowAdzan(true);
+          setIsAdzanPlaying(true);
+          isAdzanPlayingRef.current = true;
 
-    setCurrentPrayer(
-      prayer.name
-    );
+          setIqomahCountdown(currentMosque?.iqomah_duration || 300);
 
-    setShowAdzan(true);
+          // Gunakan audioRef yang sudah ada (src sudah diset di <audio> tag)
+          // Tapi update src kalau beda (misal subuh)
+          if (audioRef.current) {
+            audioRef.current.src = prayer.audio;
+            audioRef.current.volume = 1;
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch((err) => {
+              console.error("Gagal memutar adzan:", err);
+            });
 
-    setIsAdzanPlaying(
-      true
-    );
-
-    if (
-      audioRef.current
-    ) {
-
-      audioRef.current.volume =
-        1;
-
-      audioRef.current.play();
-
-      audioRef.current.onended =
-        () => {
-
-          setShowAdzan(
-            false
-          );
-
-          setIsAdzanPlaying(
-            false
-          );
-
-          setIsIqomah(
-            true
-          );
-
-          setIqomahCountdown(
-            mosque?.iqomah_duration ||
-              300
-          );
-        };
-    }
-
-    break;
-  }
-}
-    const interval =
-      setInterval(() => {
-
-        const now =
-          new Date();
-
-        const currentTime =
-          now.toLocaleTimeString(
-            "id-ID",
-            {
-              hour:
-                "2-digit",
-              minute:
-                "2-digit",
-              hour12:
-                false,
-            }
-          );
-
-        const adzanList = [
-
-          {
-            name:
-              "Subuh",
-            time:
-              prayerTimes.Fajr,
-            audio:
-              mosque?.adzan_subuh_url || "/audio/adzan-subuh.mp3",
-          },
-
-          {
-            name:
-              "Dzuhur",
-            time:
-              prayerTimes.Dhuhr,
-            audio:
-              mosque?.adzan_url || "/audio/adzan.mp3",
-          },
-
-          {
-            name:
-              "Ashar",
-            time:
-              prayerTimes.Asr,
-            audio:
-              mosque?.adzan_url || "/audio/adzan.mp3",
-          },
-
-          {
-            name:
-              "Maghrib",
-            time:
-              prayerTimes.Maghrib,
-            audio:
-              mosque?.adzan_url || "/audio/adzan.mp3",
-          },
-
-          {
-            name:
-              "Isya",
-            time:
-              prayerTimes.Isha,
-            audio:
-              mosque?.adzan_url || "/audio/adzan.mp3",
-          },
-        ];
-
-        for (
-          const prayer
-          of adzanList
-        ) {
-
-          const key =
-            `${prayer.name}-${currentTime}`;
-
-          if (
-            currentTime ===
-              prayer.time &&
-            triggeredRef.current !==
-              key
-          ) {
-
-            triggeredRef.current =
-              key;
-
-            setShowAdzan(
-              true
-            );
-
-            setCurrentPrayer(
-              prayer.name
-            );
-
-            setIqomahCountdown(
-              mosque
-                ?.iqomah_duration ||
-                300
-            );
-
-            const audio =
-              new Audio(
-                prayer.audio
-              );
-
-            audioRef.current =
-              audio;
-
-            audio.play();
-
-            // AUTO HIDE ADZAN
-            setTimeout(() => {
-
-              setShowAdzan(
-                false
-              );
-
-            }, 300000);
-
-            break;
+            audioRef.current.onended = () => {
+              setShowAdzan(false);
+              setIsAdzanPlaying(false);
+              isAdzanPlayingRef.current = false;
+              setIsIqomah(true);
+              isIqomahRef.current = true;
+              setIqomahCountdown(mosqueRef.current?.iqomah_duration || 300);
+            };
           }
+
+          break;
         }
+      }
+    }, 1000);
 
-      }, 1000);
-
-    return () =>
-      clearInterval(
-        interval
-      );
-
-  }, [
-    prayerTimes,
-    autoAdzanEnabled,
-    mosque,
-  ]);
+    return () => clearInterval(interval);
+  }, [prayerTimes]);
 
   // =========================
   // IQOMAH
@@ -1329,9 +1217,7 @@ for (
 
   useEffect(() => {
 
-    if (
-      !showAdzan
-    ) return;
+    if (!isIqomah) return;
 
     const interval =
       setInterval(() => {
@@ -1339,24 +1225,17 @@ for (
         setIqomahCountdown(
           (prev) => {
 
-            if (
-              prev <= 1
-            ) {
+            if (prev <= 1) {
 
-              clearInterval(
-                interval
-              );
+              clearInterval(interval);
 
-              setShowPrayerMode(
-                true
-              );
+              setIsIqomah(false);
+              isIqomahRef.current = false;
+
+              setShowPrayerMode(true);
 
               setTimeout(() => {
-
-                setShowPrayerMode(
-                  false
-                );
-
+                setShowPrayerMode(false);
               }, 600000);
 
               // Play alarm when iqomah ends
@@ -1374,12 +1253,9 @@ for (
 
       }, 1000);
 
-    return () =>
-      clearInterval(
-        interval
-      );
+    return () => clearInterval(interval);
 
-  }, [showAdzan]);
+  }, [isIqomah]);
 
   // =========================
   // FORMAT IQOMAH
