@@ -3,7 +3,7 @@
 -- ============================================================
 -- Fixes V1 bigint mistake. Uses uuid consistently.
 -- Does NOT recreate profiles table (already exists).
--- Drops existing RLS policies before recreating.
+-- Fully idempotent: safe to run on a fresh or existing database.
 -- ============================================================
 
 BEGIN;
@@ -20,8 +20,9 @@ DECLARE
 BEGIN
   FOR tbl IN SELECT unnest(ARRAY['announcements','slides','events','donations','transactions','qris_settings'])
   LOOP
-    -- Drop index if exists
-    EXECUTE format('DROP INDEX IF EXISTS idx_%s_mosque_id', tbl);
+    -- Drop index if exists (recreated later as uuid)
+    -- Use %I to safely quote the constructed index identifier
+    EXECUTE format('DROP INDEX IF EXISTS %I', 'idx_' || tbl || '_mosque_id');
     -- Check if column exists and is bigint (V1 artifact)
     IF EXISTS (
       SELECT 1 FROM information_schema.columns
@@ -153,6 +154,12 @@ ALTER TABLE donations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE qris_settings ENABLE ROW LEVEL SECURITY;
 
+-- Track the mosque owner during onboarding so the initial insert does not depend on profiles.
+ALTER TABLE mosques
+  ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_mosques_owner_id ON mosques(owner_id);
+
 -- Helper: get current user's mosque_id (public schema — auth schema is restricted)
 CREATE OR REPLACE FUNCTION public.mosque_id()
 RETURNS uuid
@@ -164,44 +171,73 @@ AS $$
   SELECT mosque_id FROM profiles WHERE id = auth.uid()
 $$;
 
--- ----- DROP EXISTING POLICIES -----
-DROP POLICY IF EXISTS "Public read mosques" ON mosques;
-DROP POLICY IF EXISTS "Admin manage own mosque" ON mosques;
-DROP POLICY IF EXISTS "Users read own profile" ON profiles;
-DROP POLICY IF EXISTS "Users update own profile" ON profiles;
-DROP POLICY IF EXISTS "Public read announcements" ON announcements;
-DROP POLICY IF EXISTS "Admin manage announcements" ON announcements;
-DROP POLICY IF EXISTS "Public read slides" ON slides;
-DROP POLICY IF EXISTS "Admin manage slides" ON slides;
-DROP POLICY IF EXISTS "Public read events" ON events;
-DROP POLICY IF EXISTS "Admin manage events" ON events;
-DROP POLICY IF EXISTS "Public read donations" ON donations;
-DROP POLICY IF EXISTS "Admin manage donations" ON donations;
-DROP POLICY IF EXISTS "Public read transactions" ON transactions;
-DROP POLICY IF EXISTS "Admin manage transactions" ON transactions;
-DROP POLICY IF EXISTS "Public read qris" ON qris_settings;
-DROP POLICY IF EXISTS "Admin manage qris" ON qris_settings;
+-- ============================================================
+-- PREFLIGHT: Drop ALL existing policies on affected tables
+-- This handles unknown or mismatched policy names from previous
+-- migration runs (V1, partial V2, patch files, etc.) so the
+-- migration is safe to re-run on any existing database.
+-- ============================================================
+
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT schemaname, tablename, policyname
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN (
+        'mosques', 'profiles', 'announcements', 'slides', 'events',
+        'donations', 'transactions', 'qris_settings'
+      )
+  LOOP
+    EXECUTE format(
+      'DROP POLICY IF EXISTS %I ON %I.%I',
+      r.policyname, r.schemaname, r.tablename
+    );
+  END LOOP;
+END $$;
+
+-- Also drop legacy auth.mosque_id function from V1
+DROP FUNCTION IF EXISTS auth.mosque_id();
 
 -- ----- MOSQUES -----
+
+-- Public read: allows the TV page (unauthenticated) to read mosque settings
 CREATE POLICY "Public read mosques"
   ON mosques FOR SELECT USING (true);
 
+-- Owner insert: used during mosque onboarding before a profile exists
+CREATE POLICY "Users create own mosque"
+  ON mosques FOR INSERT
+  WITH CHECK (owner_id = auth.uid());
+
+-- Owner update: mosque admin updates their own mosque record
 CREATE POLICY "Admin manage own mosque"
-  ON mosques FOR ALL
-  USING (id = public.mosque_id())
-  WITH CHECK (id = public.mosque_id());
+  ON mosques FOR UPDATE
+  USING (owner_id = auth.uid())
+  WITH CHECK (owner_id = auth.uid());
 
 -- ----- PROFILES -----
+
+-- Users can read their own profile row
 CREATE POLICY "Users read own profile"
   ON profiles FOR SELECT
   USING (id = auth.uid());
 
+-- Users can insert their own profile row (needed for onboarding / handle_new_user fallback)
+CREATE POLICY "Users insert own profile"
+  ON profiles FOR INSERT
+  WITH CHECK (id = auth.uid());
+
+-- Users can update their own profile row
 CREATE POLICY "Users update own profile"
   ON profiles FOR UPDATE
   USING (id = auth.uid())
   WITH CHECK (id = auth.uid());
 
 -- ----- ANNOUNCEMENTS -----
+
 CREATE POLICY "Public read announcements"
   ON announcements FOR SELECT USING (true);
 
@@ -211,6 +247,7 @@ CREATE POLICY "Admin manage announcements"
   WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- SLIDES -----
+
 CREATE POLICY "Public read slides"
   ON slides FOR SELECT USING (true);
 
@@ -220,6 +257,7 @@ CREATE POLICY "Admin manage slides"
   WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- EVENTS -----
+
 CREATE POLICY "Public read events"
   ON events FOR SELECT USING (true);
 
@@ -229,6 +267,7 @@ CREATE POLICY "Admin manage events"
   WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- DONATIONS -----
+
 CREATE POLICY "Public read donations"
   ON donations FOR SELECT USING (true);
 
@@ -238,6 +277,7 @@ CREATE POLICY "Admin manage donations"
   WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- TRANSACTIONS -----
+
 CREATE POLICY "Public read transactions"
   ON transactions FOR SELECT USING (true);
 
@@ -247,6 +287,7 @@ CREATE POLICY "Admin manage transactions"
   WITH CHECK (mosque_id = public.mosque_id());
 
 -- ----- QRIS_SETTINGS -----
+
 CREATE POLICY "Public read qris"
   ON qris_settings FOR SELECT USING (true);
 
@@ -269,7 +310,7 @@ BEGIN
   INSERT INTO profiles (id, mosque_id, full_name, role)
   VALUES (
     NEW.id,
-    (SELECT id FROM mosques ORDER BY created_at LIMIT 1),
+    NULL,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
     'admin'
   )
@@ -283,5 +324,30 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================
+-- 9. VERIFY: Confirm only owner-based policies remain
+-- ============================================================
+
+DO $$
+DECLARE
+  legacy_count integer;
+BEGIN
+  -- Any policy referencing auth.mosque_id() is a V1 legacy
+  SELECT count(*) INTO legacy_count
+  FROM pg_policies
+  WHERE schemaname = 'public'
+    AND tablename IN (
+      'mosques', 'profiles', 'announcements', 'slides', 'events',
+      'donations', 'transactions', 'qris_settings'
+    )
+    AND (qual ILIKE '%auth.mosque_id%' OR with_check ILIKE '%auth.mosque_id%');
+
+  IF legacy_count > 0 THEN
+    RAISE EXCEPTION
+      'Legacy V1 policies referencing auth.mosque_id() still exist (% found). '
+      'Drop them before proceeding.', legacy_count;
+  END IF;
+END $$;
 
 COMMIT;

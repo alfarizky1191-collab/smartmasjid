@@ -1,9 +1,95 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const BASE_URL = "https://smartmasjid.id";
+
 export const metadata: Metadata = {
-  title: "SmartMasjid - Mosque Management System",
-  description: "Modern, comprehensive mosque management platform for prayer times, donations, events, and more",
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "SmartMasjid — Platform Digital Masjid Modern Indonesia",
+    template: "%s | SmartMasjid",
+  },
+  description:
+    "SmartMasjid adalah platform manajemen masjid digital untuk Indonesia. Dashboard admin, tampilan TV, jadwal sholat real-time, donasi QRIS, pengumuman, dan aplikasi mobile jamaah — gratis untuk semua masjid.",
+  keywords: [
+    "smartmasjid",
+    "aplikasi masjid",
+    "manajemen masjid digital",
+    "jadwal sholat",
+    "tv display masjid",
+    "donasi masjid qris",
+    "dashboard masjid",
+    "masjid digital indonesia",
+    "pengumuman masjid",
+    "software masjid",
+  ],
+  authors: [{ name: "SmartMasjid", url: BASE_URL }],
+  creator: "SmartMasjid",
+  publisher: "SmartMasjid",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-snippet": -1, "max-image-preview": "large" },
+  },
+  openGraph: {
+    type: "website",
+    locale: "id_ID",
+    url: BASE_URL,
+    siteName: "SmartMasjid",
+    title: "SmartMasjid — Platform Digital Masjid Modern Indonesia",
+    description:
+      "Dashboard admin, tampilan TV, jadwal sholat real-time, donasi QRIS, dan aplikasi mobile untuk masjid Indonesia — gratis.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "SmartMasjid — Platform Digital Masjid Modern",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SmartMasjid — Platform Digital Masjid Modern Indonesia",
+    description:
+      "Dashboard admin, tampilan TV, jadwal sholat real-time, donasi QRIS, dan aplikasi mobile untuk masjid Indonesia — gratis.",
+    images: ["/og-image.png"],
+  },
+  alternates: {
+    canonical: BASE_URL,
+    languages: { "id-ID": BASE_URL },
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icons/icon-192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icons/icon-512.svg", sizes: "512x512", type: "image/svg+xml" },
+    ],
+    apple: "/icons/apple-touch-icon.svg",
+    shortcut: "/favicon.ico",
+  },
+  manifest: "/manifest.webmanifest",
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "SmartMasjid",
+  url: BASE_URL,
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web, Android, iOS",
+  description:
+    "Platform digital manajemen masjid modern untuk Indonesia. Dashboard admin, TV display, jadwal sholat, donasi QRIS, dan aplikasi mobile.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "IDR",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "SmartMasjid",
+    url: BASE_URL,
+  },
 };
 
 export default function RootLayout({
@@ -12,11 +98,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className="h-full antialiased scroll-smooth"
-    >
-      <body className="min-h-full flex flex-col bg-white">{children}</body>
+    <html lang="id" className="h-full antialiased scroll-smooth">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }

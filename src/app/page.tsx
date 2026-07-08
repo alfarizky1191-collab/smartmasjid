@@ -7,6 +7,7 @@ import {
   Search, MapPin, Smartphone, Monitor, Star, ChevronRight,
   Wifi, Bell, Calendar, BarChart2, Users, MessageCircle,
   ArrowRight, CheckCircle2, Building2, X,
+  ChevronDown, Mail, Phone, HelpCircle, Layers,
 } from "lucide-react";
 import { searchMosques, getPopularMosques } from "@/lib/mobile/mosque";
 import { supabase } from "@/lib/supabase/client";
@@ -59,9 +60,17 @@ function Navbar() {
         </Link>
         <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
           <a href="#fitur" className="hover:text-emerald-600 transition-colors">Fitur</a>
+          <a href="#cara-kerja" className="hover:text-emerald-600 transition-colors">Cara Kerja</a>
           <a href="#direktori" className="hover:text-emerald-600 transition-colors">Direktori</a>
           <a href="#mobile" className="hover:text-emerald-600 transition-colors">Mobile App</a>
           <a href="#tv" className="hover:text-emerald-600 transition-colors">TV Display</a>
+          <a href="#kontak" className="hover:text-emerald-600 transition-colors">Kontak</a>
+          <a
+            href="#donasi-support"
+            className="hover:text-emerald-600 transition-colors"
+          >
+            Donasi
+          </a>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -319,7 +328,215 @@ function Features() {
 }
 
 
-// ─── Directory Preview ────────────────────────────────────────────────────────
+// ─── How It Works ─────────────────────────────────────────────────────────────
+const HOW_STEPS = [
+  {
+    num: "01",
+    icon: Building2,
+    title: "Daftarkan Masjid",
+    desc: "Buat akun dan daftarkan masjid Anda dalam hitungan menit. Gratis tanpa syarat.",
+  },
+  {
+    num: "02",
+    icon: Layers,
+    title: "Lengkapi Profil",
+    desc: "Upload logo, isi nama kota, tagline, dan informasi masjid untuk tampilan yang profesional.",
+  },
+  {
+    num: "03",
+    icon: BarChart2,
+    title: "Kelola Dashboard",
+    desc: "Atur pengumuman, jadwal kegiatan, donasi QRIS, dan slide foto dari dashboard admin.",
+  },
+  {
+    num: "04",
+    icon: Monitor,
+    title: "TV Display Siap",
+    desc: "Buka /tv di browser TV masjid — semua informasi tampil otomatis dan real-time.",
+  },
+];
+
+function HowItWorks() {
+  return (
+    <section className="bg-white py-16 sm:py-24" id="cara-kerja">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full mb-4">
+            Cara Kerja
+          </div>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Mulai dalam 4 Langkah Mudah
+          </h2>
+          <p className="text-gray-500 max-w-xl mx-auto">
+            Tidak perlu keahlian teknis. SmartMasjid dirancang agar mudah digunakan oleh siapa saja.
+          </p>
+        </div>
+
+        {/* Steps */}
+        <div className="relative">
+          {/* Connector line (desktop) */}
+          <div className="hidden lg:block absolute top-10 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-emerald-200 via-emerald-400 to-emerald-200" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {HOW_STEPS.map(({ num, icon: Icon, title, desc }) => (
+              <div key={num} className="flex flex-col items-center text-center group">
+                {/* Circle */}
+                <div className="relative mb-6">
+                  <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 group-hover:border-emerald-400 group-hover:bg-emerald-100 flex items-center justify-center transition-all duration-300 shadow-sm group-hover:shadow-emerald-200 group-hover:shadow-md">
+                    <Icon className="w-8 h-8 text-emerald-600" />
+                  </div>
+                  <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
+                    {num.replace("0", "")}
+                  </span>
+                </div>
+                <h3 className="font-bold text-gray-900 text-base mb-2">{title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div className="text-center mt-12">
+          <Link
+            href="/register"
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-7 py-3.5 rounded-xl transition-colors shadow-lg shadow-emerald-100 text-sm"
+          >
+            Mulai Sekarang — Gratis
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+// ─── Dashboard Preview ────────────────────────────────────────────────────────
+function DashboardPreview() {
+  return (
+    <section className="bg-gray-50 py-16 sm:py-24" id="dashboard">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="flex flex-col lg:flex-row items-center gap-12">
+          {/* Text side */}
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full mb-5">
+              <Layers className="w-3.5 h-3.5" /> Dashboard Admin
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-5 leading-snug">
+              Semua Kendali<br />di Satu Tempat
+            </h2>
+            <p className="text-gray-500 text-base leading-relaxed mb-8">
+              Dashboard admin SmartMasjid memberikan kontrol penuh atas profil masjid, konten TV, keuangan, donasi, jadwal kegiatan, dan pengumuman.
+            </p>
+            <ul className="space-y-3 mb-8">
+              {[
+                "Upload logo & slide foto masjid",
+                "Kelola pengumuman & running text",
+                "Catat & ekspor laporan keuangan PDF",
+                "Manajemen donasi QRIS & petugas",
+              ].map((f) => (
+                <li key={f} className="flex items-center gap-3 text-sm text-gray-600">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3 rounded-xl transition-colors shadow-lg shadow-emerald-100"
+            >
+              <Layers className="w-4 h-4" />
+              Masuk ke Dashboard
+            </Link>
+          </div>
+
+          {/* Dashboard mockup */}
+          <div className="flex-shrink-0 w-full max-w-lg">
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+              {/* Browser chrome */}
+              <div className="bg-gray-100 border-b border-gray-200 px-4 py-2.5 flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-green-400" />
+                </div>
+                <div className="flex-1 bg-white rounded-md px-3 py-1 text-[10px] text-gray-400 border border-gray-200 text-center max-w-xs mx-auto">
+                  smartmasjid.id/dashboard
+                </div>
+              </div>
+              {/* App layout */}
+              <div className="flex h-64">
+                {/* Sidebar */}
+                <div className="w-36 bg-slate-900 flex flex-col py-3 px-2 gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-2 px-2 py-2 mb-2">
+                    <div className="w-5 h-5 bg-emerald-500 rounded flex items-center justify-center">
+                      <MosqueIcon className="w-3 h-3 text-white" />
+                    </div>
+                    <span className="text-white text-[9px] font-bold">SmartMasjid</span>
+                  </div>
+                  {[
+                    { label: "Dashboard", active: true },
+                    { label: "TV Display", active: false },
+                    { label: "Pengumuman", active: false },
+                    { label: "Keuangan", active: false },
+                    { label: "Donasi", active: false },
+                    { label: "Kegiatan", active: false },
+                  ].map(({ label, active }) => (
+                    <div
+                      key={label}
+                      className={`px-2 py-1.5 rounded-lg text-[9px] font-medium transition-colors ${
+                        active
+                          ? "bg-emerald-600 text-white"
+                          : "text-slate-400 hover:text-white hover:bg-slate-800"
+                      }`}
+                    >
+                      {label}
+                    </div>
+                  ))}
+                </div>
+                {/* Main content */}
+                <div className="flex-1 bg-slate-50 p-3 overflow-hidden">
+                  <div className="text-[10px] font-bold text-gray-700 mb-2">Ringkasan Masjid</div>
+                  {/* Stat cards */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {[
+                      { label: "Donasi Bulan Ini", val: "Rp 2.4jt", color: "text-emerald-600" },
+                      { label: "Kegiatan Aktif", val: "5", color: "text-blue-600" },
+                      { label: "Pengumuman", val: "3", color: "text-yellow-600" },
+                      { label: "Slide Aktif", val: "8", color: "text-purple-600" },
+                    ].map(({ label, val, color }) => (
+                      <div key={label} className="bg-white rounded-lg p-2 shadow-sm border border-gray-100">
+                        <div className={`text-sm font-extrabold ${color}`}>{val}</div>
+                        <div className="text-[8px] text-gray-400 mt-0.5">{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Recent activity */}
+                  <div className="bg-white rounded-lg p-2 border border-gray-100">
+                    <div className="text-[9px] font-bold text-gray-600 mb-1.5">Aktivitas Terbaru</div>
+                    {[
+                      "Pengumuman baru ditambahkan",
+                      "Donasi Rp 500rb diterima",
+                      "Slide foto diperbarui",
+                    ].map((a) => (
+                      <div key={a} className="flex items-center gap-1.5 py-1 border-t border-gray-50 first:border-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                        <span className="text-[8px] text-gray-500 truncate">{a}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
 function DirectoryPreview() {
   const [mosques, setMosques] = useState<MosqueRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -573,26 +790,38 @@ function TVPreview() {
 }
 
 
-// ─── Testimonials ─────────────────────────────────────────────────────────────
+// ─── Testimonials (carousel) ──────────────────────────────────────────────────
 function Testimonials() {
   const [testimonials, setTestimonials] = useState<any[]>([]);
+  const [idx, setIdx] = useState(0);
 
   useEffect(() => {
     supabase
-      .from('testimonials')
-      .select('id, name, role, rating, content')
-      .eq('is_approved', true)
-      .order('created_at', { ascending: false })
-      .limit(6)
+      .from("testimonials")
+      .select("id, name, role, rating, content")
+      .eq("is_approved", true)
+      .order("created_at", { ascending: false })
+      .limit(9)
       .then(({ data }) => {
         if (data && data.length > 0) setTestimonials(data);
       });
   }, []);
 
+  // Auto-advance every 5 s
+  useEffect(() => {
+    if (testimonials.length <= 1) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % testimonials.length), 5000);
+    return () => clearInterval(t);
+  }, [testimonials.length]);
+
   if (testimonials.length === 0) return null;
 
+  const visible = testimonials.slice(idx, idx + 3).concat(
+    idx + 3 > testimonials.length ? testimonials.slice(0, (idx + 3) % testimonials.length) : []
+  );
+
   return (
-    <section className="bg-white py-16 sm:py-24">
+    <section className="bg-white py-16 sm:py-24" id="testimoni">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-yellow-50 text-yellow-700 text-xs font-semibold px-3 py-1 rounded-full mb-4">
@@ -601,17 +830,22 @@ function Testimonials() {
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Dipercaya Pengurus Masjid</h2>
           <p className="text-gray-500">Apa kata mereka yang sudah menggunakan SmartMasjid</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {testimonials.map((t) => (
-            <div key={t.id} className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-emerald-200 hover:shadow-md transition-all">
+
+        {/* Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {visible.map((t, i) => (
+            <div
+              key={`${t.id}-${i}`}
+              className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-emerald-200 hover:shadow-md transition-all"
+            >
               <div className="flex gap-1 mb-4">
-                {Array.from({ length: t.rating || 5 }).map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                {Array.from({ length: t.rating || 5 }).map((_, si) => (
+                  <Star key={si} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
               <p className="text-gray-600 text-sm leading-relaxed mb-5 italic">&ldquo;{t.content}&rdquo;</p>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center">
+                <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
                   <Users className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div>
@@ -620,6 +854,166 @@ function Testimonials() {
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+
+        {/* Dot navigation */}
+        {testimonials.length > 1 && (
+          <div className="flex justify-center gap-2">
+            {testimonials.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setIdx(i)}
+                aria-label={`Testimoni ${i + 1}`}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  i === idx ? "bg-emerald-500 w-5" : "bg-gray-300 hover:bg-emerald-300"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
+const FAQS = [
+  {
+    q: "Apakah SmartMasjid benar-benar gratis?",
+    a: "Ya, semua fitur inti SmartMasjid — dashboard admin, TV display, mobile app, jadwal sholat, pengumuman, dan donasi QRIS — dapat digunakan secara gratis oleh seluruh masjid Indonesia tanpa batasan.",
+  },
+  {
+    q: "Bagaimana cara mendaftarkan masjid?",
+    a: "Klik tombol 'Daftarkan Masjid' di halaman ini, isi formulir pendaftaran dengan nama, kota, dan email, lalu verifikasi akun Anda. Seluruh proses kurang dari 5 menit.",
+  },
+  {
+    q: "Apakah bisa digunakan di TV apa saja?",
+    a: "TV display SmartMasjid berbasis web — cukup buka browser di Smart TV, Android TV, atau komputer/laptop yang terhubung ke TV, lalu akses URL /tv masjid Anda. Tidak perlu aplikasi tambahan.",
+  },
+  {
+    q: "Bagaimana dengan keamanan data masjid?",
+    a: "Data masjid disimpan di Supabase dengan enkripsi standar industri. Setiap masjid memiliki data yang terisolasi — admin satu masjid tidak dapat mengakses data masjid lain.",
+  },
+  {
+    q: "Apakah ada aplikasi mobile untuk jamaah?",
+    a: "Ya, SmartMasjid Mobile dapat diakses melalui browser di smartphone (PWA) — tidak perlu install dari Play Store atau App Store. Jamaah dapat melihat jadwal sholat, pengumuman, dan donasi.",
+  },
+  {
+    q: "Bagaimana jika butuh bantuan teknis?",
+    a: "Tim SmartMasjid siap membantu melalui WhatsApp. Klik tombol 'Hubungi via WhatsApp' di bawah atau di bagian kontak untuk terhubung langsung dengan admin.",
+  },
+];
+
+function FAQ() {
+  const [open, setOpen] = useState<number | null>(null);
+
+  return (
+    <section className="bg-gray-50 py-16 sm:py-24" id="faq">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full mb-4">
+            <HelpCircle className="w-3.5 h-3.5" /> FAQ
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Pertanyaan yang Sering Diajukan</h2>
+          <p className="text-gray-500">Tidak menemukan jawaban? Hubungi kami langsung.</p>
+        </div>
+
+        <div className="space-y-3">
+          {FAQS.map((faq, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-2xl border border-gray-100 hover:border-emerald-200 transition-colors overflow-hidden"
+            >
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
+                aria-expanded={open === i}
+              >
+                <span className="font-semibold text-gray-800 text-sm">{faq.q}</span>
+                <ChevronDown
+                  className={`w-4 h-4 text-emerald-500 flex-shrink-0 transition-transform duration-200 ${
+                    open === i ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {open === i && (
+                <div className="px-5 pb-5">
+                  <p className="text-sm text-gray-500 leading-relaxed">{faq.a}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Contact ──────────────────────────────────────────────────────────────────
+function Contact() {
+  return (
+    <section className="bg-white py-16 sm:py-20" id="kontak">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full mb-4">
+            <Mail className="w-3.5 h-3.5" /> Kontak
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Ada Pertanyaan?</h2>
+          <p className="text-gray-500 max-w-md mx-auto">
+            Tim kami siap membantu Anda mendaftarkan masjid, mengatasi kendala teknis, atau menjawab pertanyaan apapun.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl mx-auto">
+          {[
+            {
+              icon: MessageCircle,
+              title: "WhatsApp",
+              desc: "Respon cepat via chat",
+              label: "Chat Sekarang",
+              href: "https://wa.me/6289656009717?text=Halo%2C+saya+ingin+bertanya+tentang+SmartMasjid",
+              color: "bg-green-50 border-green-200 hover:border-green-400 text-green-700",
+              iconBg: "bg-green-100",
+              iconColor: "text-green-600",
+            },
+            {
+              icon: Building2,
+              title: "Daftarkan Masjid",
+              desc: "Mulai dalam 5 menit",
+              label: "Daftar Gratis",
+              href: "/register",
+              color: "bg-emerald-50 border-emerald-200 hover:border-emerald-400 text-emerald-700",
+              iconBg: "bg-emerald-100",
+              iconColor: "text-emerald-600",
+            },
+            {
+              icon: Phone,
+              title: "Telepon",
+              desc: "+62 896-5600-9717",
+              label: "Hubungi",
+              href: "tel:+6289656009717",
+              color: "bg-blue-50 border-blue-200 hover:border-blue-400 text-blue-700",
+              iconBg: "bg-blue-100",
+              iconColor: "text-blue-600",
+            },
+          ].map(({ icon: Icon, title, desc, label, href, color, iconBg, iconColor }) => (
+            <a
+              key={title}
+              href={href}
+              target={href.startsWith("http") ? "_blank" : undefined}
+              rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+              className={`flex flex-col items-center text-center p-6 rounded-2xl border transition-all hover:shadow-md group ${color}`}
+            >
+              <div className={`w-12 h-12 rounded-xl ${iconBg} flex items-center justify-center mb-4`}>
+                <Icon className={`w-5 h-5 ${iconColor}`} />
+              </div>
+              <div className="font-bold text-gray-900 mb-1">{title}</div>
+              <div className="text-sm text-gray-500 mb-4">{desc}</div>
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
+                {label} <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </span>
+            </a>
           ))}
         </div>
       </div>
@@ -679,13 +1073,176 @@ function CTA() {
   );
 }
 
+// ─── Support SmartMasjid ─────────────────────────────────────────────────────
+function SupportSmartMasjid() {
+  return (
+    <section id="donasi-support" className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 sm:py-24 overflow-hidden">
+      {/* Islamic ornament background layers */}
+      <IslamicPattern className="absolute -top-8 -right-8 w-80 h-80 text-emerald-500 opacity-10 pointer-events-none" />
+      <IslamicPattern className="absolute -bottom-8 -left-8 w-64 h-64 text-amber-400 opacity-8 pointer-events-none rotate-45" />
+      <IslamicPattern className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] text-emerald-400 opacity-5 pointer-events-none" />
+
+      {/* Glowing ambient blobs */}
+      <div className="absolute top-0 left-1/4 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-amber-400/8 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
+
+        {/* Section header */}
+        <div className="text-center mb-12">
+          {/* Gold ornamental divider */}
+          <div className="flex items-center justify-center gap-3 mb-5">
+            <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-400/60" />
+            <svg viewBox="0 0 24 24" className="w-5 h-5 text-amber-400" fill="currentColor" aria-hidden="true">
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+            </svg>
+            <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-400/60" />
+          </div>
+
+          <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold px-4 py-1.5 rounded-full mb-5">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+            Dukung Misi Kami
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-5 leading-snug">
+            Dukung Pengembangan{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
+              SmartMasjid
+            </span>
+          </h2>
+
+          <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+            SmartMasjid berkomitmen menyediakan platform digital yang dapat digunakan secara{" "}
+            <span className="text-emerald-400 font-semibold">gratis</span> oleh masjid di seluruh Indonesia.
+            <br className="hidden sm:block" />
+            Dukungan Anda membantu kami mengembangkan fitur baru, menjaga server tetap online,
+            meningkatkan keamanan, dan menghadirkan layanan yang lebih baik bagi seluruh jamaah.
+          </p>
+        </div>
+
+        {/* Two-column cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+
+          {/* ── Left card: Benefits + CTA ── */}
+          <div className="group relative rounded-3xl p-px bg-gradient-to-br from-emerald-500/40 via-teal-500/20 to-transparent hover:from-emerald-400/60 transition-all duration-500">
+            <div className="relative h-full bg-slate-900/80 backdrop-blur-xl rounded-3xl p-7 sm:p-8 flex flex-col">
+              {/* Corner ornament */}
+              <IslamicPattern className="absolute top-3 right-3 w-20 h-20 text-emerald-500 opacity-15 pointer-events-none" />
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                  <MosqueIcon className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg leading-tight">SmartMasjid Tetap Gratis</h3>
+                  <p className="text-slate-400 text-xs mt-0.5">Donasi Anda menjaga platform tetap berjalan</p>
+                </div>
+              </div>
+
+              {/* Benefit list */}
+              <ul className="space-y-3 mb-8 flex-1">
+                {[
+                  { label: "Infrastruktur Cloud", icon: "🌐" },
+                  { label: "Pengembangan Fitur", icon: "⚙️" },
+                  { label: "Keamanan Sistem", icon: "🔒" },
+                  { label: "Digitalisasi Masjid Indonesia", icon: "🕌" },
+                ].map(({ label, icon }) => (
+                  <li
+                    key={label}
+                    className="flex items-center gap-3 bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 rounded-xl px-4 py-3 transition-all duration-200"
+                  >
+                    <span className="text-base leading-none" aria-hidden="true">{icon}</span>
+                    <span className="text-sm font-medium text-slate-200">{label}</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 ml-auto flex-shrink-0" />
+                  </li>
+                ))}
+              </ul>
+
+              {/* CTA button */}
+              <a
+                href="#qris-support"
+                className="relative inline-flex items-center justify-center gap-2 w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold px-6 py-4 rounded-2xl transition-all duration-300 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5 text-base group"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                </svg>
+                Donasi Sekarang
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </a>
+            </div>
+          </div>
+
+          {/* ── Right card: QRIS placeholder ── */}
+          <div
+            id="qris-support"
+            className="group relative rounded-3xl p-px bg-gradient-to-br from-amber-400/40 via-yellow-500/20 to-transparent hover:from-amber-400/60 transition-all duration-500"
+          >
+            <div className="relative h-full bg-slate-900/80 backdrop-blur-xl rounded-3xl p-7 sm:p-8 flex flex-col items-center text-center">
+              {/* Corner ornament */}
+              <IslamicPattern className="absolute top-3 left-3 w-20 h-20 text-amber-400 opacity-15 pointer-events-none" />
+
+              <div className="inline-flex items-center gap-2 bg-amber-400/20 border border-amber-400/30 text-amber-300 text-xs font-semibold px-3 py-1 rounded-full mb-5">
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                </svg>
+                QRIS Donasi
+              </div>
+
+              <h3 className="text-white font-bold text-xl mb-2">Scan QRIS</h3>
+              <p className="text-slate-400 text-sm mb-7">Dukung SmartMasjid melalui QRIS.</p>
+
+              {/* QRIS image */}
+              <div className="relative w-48 h-48 sm:w-56 sm:h-56 mb-6">
+                {/* Outer glow ring */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-400/30 to-emerald-500/20 blur-sm" />
+                {/* Card */}
+                <div className="relative w-full h-full bg-white rounded-2xl shadow-2xl border-4 border-white overflow-hidden">
+                  <Image
+                    src="/qris-donasi.png"
+                    alt="QRIS Donasi SmartMasjid"
+                    fill
+                    className="object-contain p-2"
+                  />
+                </div>
+              </div>
+
+              <p className="text-slate-500 text-xs leading-relaxed max-w-xs">
+                Scan untuk mendukung pengembangan SmartMasjid.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom note */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>Donasi bersifat sukarela.</span>
+          </div>
+          <span className="hidden sm:block text-slate-600" aria-hidden="true">•</span>
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>
+              Semua fitur inti SmartMasjid tetap dapat digunakan secara{" "}
+              <span className="text-emerald-400 font-semibold">gratis</span> oleh seluruh masjid.
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
 // ─── Footer ───────────────────────────────────────────────────────────────────
 function Footer() {
+  const year = new Date().getFullYear();
   return (
-    <footer className="bg-gray-900 text-gray-400 py-12">
+    <footer className="bg-gray-900 text-gray-400 py-14">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-          {/* Brand */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+
+          {/* Brand — spans 2 cols on lg */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
@@ -693,47 +1250,64 @@ function Footer() {
               </div>
               <span className="font-bold text-lg text-white">SmartMasjid</span>
             </div>
-            <p className="text-sm leading-relaxed text-gray-500 max-w-xs">
-              Platform digital masjid modern untuk manajemen jadwal, donasi, pengumuman, dan tampilan informasi masjid.
+            <p className="text-sm leading-relaxed text-gray-500 max-w-xs mb-5">
+              Platform digital masjid modern untuk manajemen jadwal, donasi, pengumuman, dan tampilan informasi masjid Indonesia.
             </p>
+            <a
+              href="https://wa.me/6289656009717"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> Hubungi via WhatsApp
+            </a>
           </div>
 
-          {/* Links */}
+          {/* Product */}
           <div>
-            <h4 className="text-white font-semibold mb-4 text-sm">Platform</h4>
-            <ul className="space-y-2 text-sm">
+            <h4 className="text-white font-semibold mb-4 text-sm">Produk</h4>
+            <ul className="space-y-2.5 text-sm">
               <li><Link href="/app" className="hover:text-emerald-400 transition-colors">SmartMasjid Mobile</Link></li>
               <li><Link href="/masjid" className="hover:text-emerald-400 transition-colors">Direktori Masjid</Link></li>
               <li><Link href="/dashboard" className="hover:text-emerald-400 transition-colors">Dashboard Admin</Link></li>
+              <li><a href="#tv" className="hover:text-emerald-400 transition-colors">TV Display</a></li>
+              <li><Link href="/register" className="hover:text-emerald-400 transition-colors">Daftarkan Masjid</Link></li>
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Support */}
           <div>
-            <h4 className="text-white font-semibold mb-4 text-sm">Kontak</h4>
-            <ul className="space-y-2 text-sm">
+            <h4 className="text-white font-semibold mb-4 text-sm">Bantuan</h4>
+            <ul className="space-y-2.5 text-sm">
+              <li><a href="#cara-kerja" className="hover:text-emerald-400 transition-colors">Cara Kerja</a></li>
+              <li><a href="#faq" className="hover:text-emerald-400 transition-colors">FAQ</a></li>
+              <li><a href="#donasi-support" className="hover:text-emerald-400 transition-colors">Dukung Kami</a></li>
               <li>
                 <a
                   href="https://wa.me/6289656009717"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:text-emerald-400 transition-colors"
+                  className="hover:text-emerald-400 transition-colors"
                 >
-                  <MessageCircle className="w-4 h-4" /> WhatsApp Admin
+                  WhatsApp Admin
                 </a>
               </li>
-              <li>
-                <Link href="/register" className="flex items-center gap-2 hover:text-emerald-400 transition-colors">
-                  <Building2 className="w-4 h-4" /> Daftarkan Masjid
-                </Link>
-              </li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 className="text-white font-semibold mb-4 text-sm">Legal</h4>
+            <ul className="space-y-2.5 text-sm">
+              <li><Link href="/privacy" className="hover:text-emerald-400 transition-colors">Kebijakan Privasi</Link></li>
+              <li><Link href="/terms" className="hover:text-emerald-400 transition-colors">Syarat & Ketentuan</Link></li>
             </ul>
           </div>
         </div>
 
         {/* Bottom bar */}
         <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <p>© {new Date().getFullYear()} SmartMasjid. Semua hak dilindungi.</p>
+          <p>© {year} SmartMasjid. Semua hak dilindungi.</p>
           <p className="text-gray-600">Dibuat untuk kemajuan masjid Indonesia</p>
         </div>
       </div>
@@ -750,11 +1324,16 @@ export default function LandingPage() {
         <Hero />
         <MosqueSearch />
         <Features />
+        <HowItWorks />
+        <DashboardPreview />
         <DirectoryPreview />
         <MobilePreview />
         <TVPreview />
         <Testimonials />
+        <FAQ />
+        <Contact />
         <CTA />
+        <SupportSmartMasjid />
       </main>
       <Footer />
     </>

@@ -9,7 +9,10 @@
 
 BEGIN;
 
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- NOTE: storage.objects RLS is managed by Supabase internally and is always
+-- enabled. Attempting ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY
+-- from a migration will fail with "must be owner of table objects".
+-- The policies below are sufficient — no ALTER TABLE needed.
 
 -- ----- mosque-assets -----
 DROP POLICY IF EXISTS "mosque-assets authenticated insert own mosque" ON storage.objects;
