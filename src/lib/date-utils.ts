@@ -11,13 +11,6 @@ const indonesianDateWithDayFormatter = new Intl.DateTimeFormat("id-ID", {
   year: "numeric",
 });
 
-const jakartaDateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
-  timeZone: JAKARTA_TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
 const toJakartaDate = (date: DateInput) => {
   if (date instanceof Date) {
     return date;
@@ -48,7 +41,18 @@ export function formatIndonesianDateWithDay(date: DateInput) {
 }
 
 export function getJakartaDateKey(date: DateInput = new Date()) {
-  return jakartaDateKeyFormatter.format(toJakartaDate(date));
+  const parsed = toJakartaDate(date);
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: JAKARTA_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(parsed);
+  const year = parts.find((p) => p.type === "year")?.value || "";
+  const month = parts.find((p) => p.type === "month")?.value || "";
+  const day = parts.find((p) => p.type === "day")?.value || "";
+  return `${year}-${month}-${day}`;
 }
 
 export const indonesianDateWithDayExamples = [

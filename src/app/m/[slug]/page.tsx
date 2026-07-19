@@ -37,6 +37,40 @@ export default function MosqueLandingPage() {
   const [currentPrayer, setCurrentPrayer] = useState("");
   const [showPrayerMode, setShowPrayerMode] = useState(false);
 
+  // SW registration and permission request
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").then((reg) => {
+          console.log("SW PWA registered on scope:", reg.scope);
+        }).catch((err) => {
+          console.error("SW PWA registration failed:", err);
+        });
+      }
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  const showLocalNotification = (title: string, body: string) => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification(title, {
+          body: body,
+          icon: mosque?.logo_url || "/icons/icon-192.svg",
+          badge: "/icons/icon-192.svg",
+          vibrate: [100, 50, 100],
+          tag: "smartmasjid-pwa-notification",
+          renotify: true,
+          data: {
+            url: window.location.href,
+          },
+        } as any);
+      });
+    }
+  };
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const triggeredRef = useRef<string | null>(null);
 
@@ -74,6 +108,68 @@ export default function MosqueLandingPage() {
     };
     load();
   }, [slug, refreshPrayerTimes]);
+
+  // Realtime subscriptions for announcements and events
+  useEffect(() => {
+    if (!mosque?.id) return;
+    const id = mosque.id;
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+
+    const annChannel = supabase
+      .channel(`mobile-ann-realtime-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "announcements",
+          filter: `mosque_id=eq.${id}`,
+        },
+        async (payload) => {
+          const { data } = await supabase
+            .from("announcements")
+            .select("*")
+            .eq("mosque_id", id)
+            .order("created_at", { ascending: false })
+            .limit(5);
+          if (data) setAnnouncements(data);
+          showLocalNotification("📢 Pengumuman Baru", payload.new.title);
+        }
+      )
+      .subscribe();
+
+    const evChannel = supabase
+      .channel(`mobile-ev-realtime-${id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "events",
+          filter: `mosque_id=eq.${id}`,
+        },
+        async (payload) => {
+          const { data } = await supabase
+            .from("events")
+            .select("*")
+            .eq("mosque_id", id)
+            .gte("event_date", today)
+            .order("event_date", { ascending: true })
+            .limit(3);
+          if (data) setEvents(data);
+          showLocalNotification(
+            "🗓️ Agenda Kegiatan Baru",
+            `${payload.new.title}${payload.new.speaker ? ' bersama ' + payload.new.speaker : ''}`
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(annChannel);
+      supabase.removeChannel(evChannel);
+    };
+  }, [mosque?.id]);
 
   // Clock
   useEffect(() => {
@@ -146,23 +242,53 @@ export default function MosqueLandingPage() {
     ];
     const id = setInterval(() => {
       const cur = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false });
+      let isAnyPrayerNow = false;
       for (const p of adzanList) {
         const key = `${p.name}-${cur}`;
-        if (cur === p.time && triggeredRef.current !== key) {
-          triggeredRef.current = key;
-          setShowAdzan(true);
-          setCurrentPrayer(p.name);
-          setIqomahCountdown(mosque?.iqomah_duration || 300);
-          const audio = new Audio(p.audio);
-          audioRef.current = audio;
-          audio.play();
-          setTimeout(() => setShowAdzan(false), 300000);
-          break;
+        if (cur === p.time) {
+          isAnyPrayerNow = true;
+          if (triggeredRef.current !== key) {
+            triggeredRef.current = key;
+            setShowAdzan(true);
+            setCurrentPrayer(p.name);
+            setIqomahCountdown(mosque?.iqomah_duration || 300);
+            
+            // Trigger push notification for adzan
+            showLocalNotification(
+              `🕌 Waktu Shalat ${p.name} Tiba`,
+              `Adzan berkumandang. Mari menunaikan shalat ${p.name} berjamaah di ${mosque?.name || "Masjid"}.`
+            );
+
+            if (audioRef.current) {
+              audioRef.current.src = p.audio;
+              audioRef.current.volume = 1;
+              audioRef.current.currentTime = 0;
+              audioRef.current.play().catch((err) => {
+                console.error("Gagal memutar adzan mobile:", err);
+              });
+            }
+            setTimeout(() => setShowAdzan(false), 300000);
+            break;
+          }
         }
+      }
+      if (!isAnyPrayerNow) {
+        triggeredRef.current = null;
       }
     }, 1000);
     return () => clearInterval(id);
   }, [prayerTimes, mosque]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
 
   // Iqomah countdown
   useEffect(() => {
@@ -203,6 +329,16 @@ export default function MosqueLandingPage() {
     );
   }
 
+  if (showPrayerMode) {
+    return (
+      <main className="min-h-screen w-full bg-black flex items-center justify-center text-center p-8">
+        <p className="text-3xl font-bold text-white tracking-wide leading-relaxed max-w-md">
+          {mosque?.shaf_message || "Harap rapatkan dan luruskan barisan shaf sholat"}
+        </p>
+      </main>
+    );
+  }
+
   return (
     <main className={`min-h-screen p-4 flex flex-col gap-4 transition-all duration-500 ${showAdzan ? "bg-yellow-950" : "bg-black"} text-white`}>
 
@@ -230,26 +366,17 @@ export default function MosqueLandingPage() {
 
       {/* COUNTDOWN / ADZAN */}
       <div className={`rounded-2xl p-5 text-center transition-all duration-500 ${showAdzan ? "bg-yellow-400 text-black animate-pulse" : "bg-emerald-500 text-black"}`}>
-        {showPrayerMode ? (
-          <div className="py-3">
-            <p className="text-xl font-bold">🕌 SHOLAT SEDANG BERLANGSUNG</p>
-            <p className="text-base mt-2">Mohon Tenang & Matikan HP</p>
-          </div>
-        ) : (
-          <>
-            <p className="text-sm font-bold">
-              {showAdzan ? `🕌 ADZAN ${currentPrayer}` : `Adzan ${nextPrayer} dalam`}
-            </p>
-            <p className="text-5xl font-bold mt-1 tabular-nums">{countdown}</p>
-            {showAdzan && (
-              <p className="text-base font-bold mt-2 animate-bounce">Hayya &apos;alash Shalah — 📵 Matikan HP</p>
-            )}
-            <div className="mt-2">
-              <p className="text-xs font-bold">IQOMAH</p>
-              <p className="text-2xl font-bold">{formatIqomah(iqomahCountdown)}</p>
-            </div>
-          </>
+        <p className="text-sm font-bold">
+          {showAdzan ? `🕌 ADZAN ${currentPrayer}` : `Adzan ${nextPrayer} dalam`}
+        </p>
+        <p className="text-5xl font-bold mt-1 tabular-nums">{countdown}</p>
+        {showAdzan && (
+          <p className="text-base font-bold mt-2 animate-bounce">Hayya &apos;alash Shalah — 📵 Matikan HP</p>
         )}
+        <div className="mt-2">
+          <p className="text-xs font-bold">IQOMAH</p>
+          <p className="text-2xl font-bold">{formatIqomah(iqomahCountdown)}</p>
+        </div>
       </div>
 
       {/* JADWAL SHOLAT */}

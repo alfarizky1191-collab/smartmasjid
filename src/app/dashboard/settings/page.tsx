@@ -45,6 +45,8 @@ export default function SettingsPage() {
   const [postalColumnAvailable, setPostalColumnAvailable] = useState(true);
   const [taglineColumnAvailable, setTaglineColumnAvailable] = useState(true);
   const [districtColumnAvailable, setDistrictColumnAvailable] = useState(true);
+  const [shafMessage, setShafMessage] = useState("Harap rapatkan dan luruskan barisan shaf sholat");
+  const [shafMessageColumnAvailable, setShafMessageColumnAvailable] = useState(true);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [testiName, setTestiName] = useState('');
   const [testiRole, setTestiRole] = useState('');
@@ -117,28 +119,30 @@ export default function SettingsPage() {
       setMosqueId(profile.mosque_id);
       await loadTestimonials(profile.mosque_id);
 
-      // Fetch mosque profile. Some deployments may not have `postal_code`, `tagline`, or `district` columns.
+      // Fetch mosque profile. Some deployments may not have `postal_code`, `tagline`, `district`, or `shaf_message` columns.
       let mosque: any = null;
       let localPostalAvail = true;
       let localTaglineAvail = true;
       let localDistrictAvail = true;
+      let localShafMessageAvail = true;
 
-      const tryFetch = async (withPostal: boolean, withTagline: boolean, withDistrict: boolean) => {
-        const cols = ["name", "slug", "address", "city", "province", ...(withDistrict ? ["district"] : []), ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), "logo_url", "adzan_url", "adzan_subuh_url", "alarm_url"].join(", ");
+      const tryFetch = async (withPostal: boolean, withTagline: boolean, withDistrict: boolean, withShafMessage: boolean) => {
+        const cols = ["name", "slug", "address", "city", "province", ...(withDistrict ? ["district"] : []), ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), ...(withShafMessage ? ["shaf_message"] : []), "logo_url", "adzan_url", "adzan_subuh_url", "alarm_url"].join(", ");
         return supabase.from("mosques").select(cols).eq("id", profile.mosque_id).single();
       };
 
       const isColErr = (msg: string, col: string) =>
         msg.toLowerCase().includes(col) || msg.toLowerCase().includes(`column "${col}"`);
 
-      let resp = await tryFetch(true, true, true);
+      let resp = await tryFetch(true, true, true, true);
       if ((resp as any).error) {
         const msg = ((resp as any).error?.message || "").toLowerCase();
         if (isColErr(msg, "tagline")) { localTaglineAvail = false; setTaglineColumnAvailable(false); }
         if (isColErr(msg, "postal_code")) { localPostalAvail = false; setPostalColumnAvailable(false); }
         if (isColErr(msg, "district")) { localDistrictAvail = false; setDistrictColumnAvailable(false); }
-        if (!localPostalAvail || !localTaglineAvail || !localDistrictAvail) {
-          resp = await tryFetch(localPostalAvail, localTaglineAvail, localDistrictAvail);
+        if (isColErr(msg, "shaf_message")) { localShafMessageAvail = false; setShafMessageColumnAvailable(false); }
+        if (!localPostalAvail || !localTaglineAvail || !localDistrictAvail || !localShafMessageAvail) {
+          resp = await tryFetch(localPostalAvail, localTaglineAvail, localDistrictAvail, localShafMessageAvail);
           if ((resp as any).error) {
             const e = (resp as any).error;
             console.warn("Mosque profile fetch failed after fallback:", e?.message || e?.code || JSON.stringify(e));
@@ -192,6 +196,9 @@ export default function SettingsPage() {
         setAdzanUrl(mosque.adzan_url || "");
         setAdzanSubuhUrl(mosque.adzan_subuh_url || "");
         setAlarmUrl(mosque.alarm_url || "");
+        if (localShafMessageAvail) {
+          setShafMessage(mosque.shaf_message || "Harap rapatkan dan luruskan barisan shaf sholat");
+        }
       }
       setLoading(false);
     };
@@ -251,6 +258,7 @@ export default function SettingsPage() {
     if (taglineColumnAvailable) payload.tagline = tagline.trim();
     if (postalColumnAvailable) payload.postal_code = postalCode.trim() || null;
     if (districtColumnAvailable) payload.district = districtName.trim() || null;
+    if (shafMessageColumnAvailable) payload.shaf_message = shafMessage.trim();
 
     const { data: updatedMosque, error: saveError } = await supabase
       .from("mosques")
@@ -276,6 +284,7 @@ export default function SettingsPage() {
       if (taglineColumnAvailable) setTagline((updatedMosque as any).tagline || "");
       setLogoUrl((updatedMosque as any).logo_url || "");
       if (postalColumnAvailable) setPostalCode((updatedMosque as any).postal_code || "");
+      if (shafMessageColumnAvailable) setShafMessage((updatedMosque as any).shaf_message || "Harap rapatkan dan luruskan barisan shaf sholat");
     }
 
     await logAuditAction({
@@ -286,6 +295,7 @@ export default function SettingsPage() {
         slug: normalizedSlug || null,
         city: city.trim(),
         province: province.trim(),
+        shaf_message: shafMessage.trim(),
       },
     });
 
@@ -500,6 +510,13 @@ export default function SettingsPage() {
               <span className="text-sm text-slate-400">Tagline</span>
               <input className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2" placeholder="Pusat Ibadah dan Pembinaan Umat" value={tagline} onChange={(e) => setTagline(e.target.value)} />
             </label>
+
+            {shafMessageColumnAvailable && (
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Pesan Rapatkan Shaf (Tampilan TV setelah Iqomah selesai)</span>
+                <input className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2" placeholder="Harap rapatkan dan luruskan barisan shaf sholat" value={shafMessage} onChange={(e) => setShafMessage(e.target.value)} />
+              </label>
+            )}
 
             <button
               onClick={handleSave}
