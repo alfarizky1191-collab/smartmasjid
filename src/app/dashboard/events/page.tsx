@@ -15,6 +15,7 @@ import { logAuditAction } from "@/lib/audit";
 export default function EventsPage() {
 
   const [mosqueId, setMosqueId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   const [title, setTitle] =
     useState("");
@@ -85,6 +86,9 @@ export default function EventsPage() {
         return;
       }
       setMosqueId(data.mosque_id);
+      // Save token for push notification
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) setAccessToken(session.access_token);
       await loadEvents(data.mosque_id);
       if (cancelled) return;
 
@@ -161,9 +165,7 @@ export default function EventsPage() {
 
       // Kirim push notification ke subscriber masjid
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-        if (token && mosqueId) {
+        if (accessToken && mosqueId) {
           const dateStr = eventDate
             ? new Date(eventDate).toLocaleDateString("id-ID", { day: "numeric", month: "long" })
             : "";
@@ -171,7 +173,7 @@ export default function EventsPage() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,
+              "Authorization": `Bearer ${accessToken}`,
             },
             body: JSON.stringify({
               mosque_id: mosqueId,

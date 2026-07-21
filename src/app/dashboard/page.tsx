@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [email, setEmail] = useState("");
   const [mosqueId, setMosqueId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   const [mosqueName, setMosqueName] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -49,6 +50,10 @@ export default function DashboardPage() {
       }
 
       setEmail(user.email || "");
+
+      // Save token for push notification API calls
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) setAccessToken(session.access_token);
 
       const { data: profileData } = await supabase
         .from("profiles")
@@ -208,14 +213,12 @@ export default function DashboardPage() {
 
       // Kirim push notification ke subscriber masjid
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-        if (token && mosqueId) {
+        if (accessToken && mosqueId) {
           await fetch("/api/push/send", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,
+              "Authorization": `Bearer ${accessToken}`,
             },
             body: JSON.stringify({
               mosque_id: mosqueId,
