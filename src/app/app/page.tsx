@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useFavoriteMosque } from "@/hooks/useFavoriteMosque";
+import { usePushNotification } from "@/hooks/usePushNotification";
 
 // ── Services ─────────────────────────────────────────────────────────────
 import { getMosqueBySlug }            from "@/lib/mobile/mosque";
@@ -90,6 +91,8 @@ export default function AppHomePage() {
   const [officers, setOfficers]           = useState<OfficerEntry[]>([]);
   const [slides, setSlides]               = useState<SlideRow[]>([]);
   const [qrisUrl, setQrisUrl]             = useState<string | null>(null);
+
+  const push = usePushNotification(mosque?.id);
 
   const [iqomahSecs, setIqomahSecs]           = useState(300);
   const [showAdzan, setShowAdzan]             = useState(false);
@@ -390,6 +393,37 @@ export default function AppHomePage() {
           currentPrayer={currentPrayer}
         />
       </div>
+
+      {/* ── Push Notification Card ───────────────────────────────── */}
+      {push.isSupported && (
+        <div className="mx-4 sm:mx-5 mb-5 bg-gradient-to-r from-emerald-900/40 via-slate-900/60 to-emerald-900/40 backdrop-blur-md border border-emerald-500/30 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 text-xl shrink-0">
+              🔔
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white leading-snug">Notifikasi Waktu Sholat</p>
+              <p className="text-xs text-slate-300">
+                {push.isSubscribed ? "Notifikasi adzan & kegiatan aktif" : "Dapatkan info adzan & kegiatan masjid"}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
+            disabled={push.isLoading || push.isDenied}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 shrink-0 shadow-md ${
+              push.isSubscribed
+                ? "bg-slate-800 text-emerald-300 border border-emerald-500/40 hover:bg-slate-700"
+                : push.isDenied
+                ? "bg-slate-800 text-slate-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-amber-500/30 active:scale-95"
+            }`}
+          >
+            {push.isLoading ? "Proses..." : push.isSubscribed ? "Aktif ✓" : push.isDenied ? "Ditolak" : "Aktifkan"}
+          </button>
+        </div>
+      )}
 
       {/* ── 4. Quick actions ──────────────────────────────────────── */}
       <QuickAction actions={quickActions} />

@@ -18,8 +18,10 @@ import Image             from "next/image";
 import {
   MapPin, Phone, MessageCircle, Globe, Mail,
   RefreshCw, Tv2, Building2, Info, Clock,
-  ExternalLink, ChevronRight,
+  ExternalLink, ChevronRight, Bell, BellOff,
 } from "lucide-react";
+
+import { usePushNotification } from "@/hooks/usePushNotification";
 
 import { useFavoriteMosque }  from "@/hooks/useFavoriteMosque";
 import { getMosqueBySlug }    from "@/lib/mobile/mosque";
@@ -43,6 +45,16 @@ export default function ProfilPage() {
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [mosque,    setMosque]    = useState<MosqueRow | null>(null);
   const [switching, setSwitching] = useState(false);
+
+  // Push notification subscription
+  const {
+    isSupported: pushSupported,
+    isSubscribed,
+    isLoading: pushLoading,
+    isDenied: pushDenied,
+    subscribe: subscribePush,
+    unsubscribe: unsubscribePush,
+  } = usePushNotification(favorite?.mosque_id ?? null);
 
   // Redirect if no mosque set
   useEffect(() => {
@@ -434,7 +446,73 @@ export default function ProfilPage() {
                 </section>
               )}
 
-              {/* ── App Info ──────────────────────────────────────── */}
+              {/* ── Pengaturan Notifikasi ─────────────────────────── */}
+              {pushSupported && (
+                <section aria-label="Pengaturan notifikasi">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                    Notifikasi
+                  </p>
+                  <div className="bg-slate-900/70 rounded-3xl border border-slate-700/40 overflow-hidden">
+                    <div className="flex items-center gap-3 px-5 py-4">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                          isSubscribed
+                            ? "bg-emerald-500/10 border-emerald-500/20"
+                            : "bg-slate-800 border-slate-700"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {isSubscribed ? (
+                          <Bell size={16} className="text-emerald-400" strokeWidth={2} />
+                        ) : (
+                          <BellOff size={16} className="text-slate-400" strokeWidth={2} />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-semibold">
+                          {isSubscribed ? "Notifikasi Aktif" : "Aktifkan Notifikasi"}
+                        </p>
+                        <p className="text-slate-500 text-xs mt-0.5">
+                          {pushDenied
+                            ? "Izin notifikasi ditolak di pengaturan browser"
+                            : isSubscribed
+                            ? "Anda akan menerima pengumuman dari masjid ini"
+                            : "Terima pengumuman dari masjid ini"}
+                        </p>
+                      </div>
+
+                      {!pushDenied && (
+                        <button
+                          type="button"
+                          onClick={isSubscribed ? unsubscribePush : subscribePush}
+                          disabled={pushLoading || !favorite?.mosque_id}
+                          aria-label={isSubscribed ? "Matikan notifikasi" : "Aktifkan notifikasi"}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed ${
+                            isSubscribed ? "bg-emerald-500" : "bg-slate-700"
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${
+                              isSubscribed ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                      )}
+                    </div>
+
+                    {pushDenied && (
+                      <div className="px-5 pb-4">
+                        <p className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2">
+                          Buka pengaturan browser → izinkan notifikasi untuk situs ini, lalu muat ulang halaman.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* ── App Info ──────────────────────────────────────────── */}
               <section aria-label="Informasi aplikasi">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                   Informasi Aplikasi

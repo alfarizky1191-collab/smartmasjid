@@ -4,7 +4,7 @@ import { useEffect, useState, memo } from "react";
 import type { PrayerEntry } from "@/lib/mobile/types";
 import { getNextPrayerCountdown, formatIqomah } from "@/lib/mobile/prayer";
 
-// ─── Helpers (pure, no allocations in render) ────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────
 
 function clockString(): string {
   return new Date().toLocaleTimeString("id-ID", {
@@ -36,26 +36,26 @@ function hijriString(): string {
   }
 }
 
-// ─── Sub-components (memoised so parent tick doesn't cascade) ────────────
+// ─── Sub-components ──────────────────────────────────────────────────────
 
 const DateDisplay = memo(function DateDisplay() {
   const gregorian = gregorianString();
-  const hijri     = hijriString();
+  const hijri = hijriString();
 
   return (
-    <>
-      <p className="text-center text-sm font-semibold text-slate-300 mt-1">
+    <div className="mt-2 text-center">
+      <p className="text-sm sm:text-base font-bold text-slate-200 tracking-wide">
         {gregorian}
       </p>
       {hijri && (
         <div className="flex justify-center mt-2">
-          <span className="inline-flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-3 py-1">
-            <span className="text-yellow-400 text-xs" aria-hidden="true">☽</span>
-            <span className="text-yellow-300 text-xs font-semibold">{hijri}</span>
+          <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-amber-400/20 to-amber-500/20 border border-amber-400/40 rounded-full px-4 py-1 shadow-sm">
+            <span className="text-amber-300 text-sm font-bold" aria-hidden="true">☽</span>
+            <span className="text-amber-300 text-xs sm:text-sm font-bold tracking-wide">{hijri}</span>
           </span>
         </div>
       )}
-    </>
+    </div>
   );
 });
 
@@ -72,16 +72,17 @@ export const CountdownBar = memo(function CountdownBar({
   showAdzan,
   currentPrayer,
 }: CountdownBarProps) {
-  const { name, countdown } = prayers.length > 0
-    ? getNextPrayerCountdown(prayers)
-    : { name: "—", countdown: "00:00:00" };
+  const { name, countdown } =
+    prayers.length > 0
+      ? getNextPrayerCountdown(prayers)
+      : { name: "—", countdown: "00:00:00" };
 
   return (
     <div
-      className={`mx-5 rounded-3xl p-5 text-center transition-colors duration-500 ${
+      className={`mx-4 sm:mx-5 rounded-3xl p-6 text-center transition-all duration-500 shadow-2xl border ${
         showAdzan
-          ? "bg-yellow-400 text-black animate-pulse"
-          : "bg-emerald-500/15 border border-emerald-500/30 text-white"
+          ? "bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 text-slate-950 border-amber-300 animate-pulse shadow-amber-500/40"
+          : "bg-gradient-to-b from-emerald-900/90 via-slate-900/95 to-emerald-950/90 border-emerald-500/40 backdrop-blur-xl shadow-emerald-950/80 text-white"
       }`}
       role="timer"
       aria-live="off"
@@ -89,29 +90,31 @@ export const CountdownBar = memo(function CountdownBar({
     >
       {showAdzan ? (
         <div>
-          <p className="text-base font-extrabold">🕌 ADZAN {currentPrayer}</p>
-          <p className="text-sm mt-1 font-semibold">
-            Hayya &apos;alash Shalah — 📵 Matikan HP
+          <p className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-950">
+            🕌 ADZAN WAKTU {currentPrayer}
           </p>
-          <p className="text-lg font-bold mt-1 tabular-nums" aria-label={`Iqomah ${formatIqomah(iqomahSecs)}`}>
-            Iqomah: {formatIqomah(iqomahSecs)}
+          <p className="text-sm font-extrabold text-slate-950 mt-1.5 animate-bounce">
+            Hayya &apos;alash Shalah — 📵 Harap Matikan / Heningkan HP
+          </p>
+          <p className="text-xl font-black mt-2 font-mono tracking-wide" aria-label={`Iqomah ${formatIqomah(iqomahSecs)}`}>
+            Jeda Iqomah: {formatIqomah(iqomahSecs)}
           </p>
         </div>
       ) : (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300 mb-1">
-            Adzan berikutnya
+          <p className="text-xs sm:text-sm font-black uppercase tracking-widest text-amber-300 mb-1 flex items-center justify-center gap-1.5">
+            <span>✨</span> Waktu Sholat Berikutnya <span>✨</span>
           </p>
-          <p className="text-lg font-bold text-white">{name}</p>
+          <p className="text-xl sm:text-2xl font-black text-white">{name}</p>
           <p
-            className="text-[42px] font-extrabold tabular-nums leading-none tracking-tight text-white mt-1"
+            className="text-5xl sm:text-6xl font-black tracking-wider font-mono text-amber-300 mt-2 drop-shadow-md tabular-nums"
             aria-label={`Countdown ${countdown}`}
           >
             {countdown}
           </p>
           {iqomahSecs > 0 && (
-            <p className="text-xs text-emerald-300 mt-2 font-semibold">
-              Iqomah: {formatIqomah(iqomahSecs)}
+            <p className="text-xs sm:text-sm font-bold text-emerald-400 mt-3 tracking-wide">
+              Iqomah dalam: {formatIqomah(iqomahSecs)}
             </p>
           )}
         </div>
@@ -129,16 +132,7 @@ interface ClockWidgetProps {
   currentPrayer: string;
 }
 
-/**
- * Isolated client island — ONLY this component re-renders every second.
- * The rest of the page (mosque info, announcements, events…) is static.
- */
-export default memo(function ClockWidget({
-  prayers,
-  iqomahSecs,
-  showAdzan,
-  currentPrayer,
-}: ClockWidgetProps) {
+export default memo(function ClockWidget({}: ClockWidgetProps) {
   const [clock, setClock] = useState(clockString);
 
   useEffect(() => {
@@ -147,20 +141,28 @@ export default memo(function ClockWidget({
   }, []);
 
   return (
-    <div className="text-center">
-      {/* HH:MM large */}
-      <p
-        className="text-[64px] font-extrabold leading-none tracking-tight tabular-nums text-white"
-        aria-label={`Waktu sekarang ${clock}`}
-      >
-        {clock.slice(0, 5)}
-      </p>
-      {/* :SS small */}
-      <span className="text-slate-500 text-lg font-semibold tabular-nums">
-        {clock.slice(6)}
-      </span>
+    <div className="text-center py-2">
+      {/* Bismillah Banner */}
+      <div className="mb-2">
+        <span className="text-amber-300 text-lg font-serif tracking-widest opacity-90">
+          بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+        </span>
+      </div>
 
-      {/* Dates — only computed once (memoised) */}
+      {/* Large Digital Clock */}
+      <div className="flex items-baseline justify-center gap-1 drop-shadow-lg">
+        <p
+          className="text-6xl sm:text-7xl font-black tracking-wider font-mono text-emerald-300 tabular-nums"
+          aria-label={`Waktu sekarang ${clock}`}
+        >
+          {clock.slice(0, 5)}
+        </p>
+        <span className="text-slate-400 text-xl font-mono font-bold tabular-nums">
+          {clock.slice(5)}
+        </span>
+      </div>
+
+      {/* Dates */}
       <DateDisplay />
     </div>
   );
