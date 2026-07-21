@@ -53,6 +53,7 @@ export default function ProfilPage() {
     isLoading: pushLoading,
     isDenied: pushDenied,
     status: pushStatus,
+    errorMsg: pushErrorMsg,
     subscribe: subscribePush,
     unsubscribe: unsubscribePush,
   } = usePushNotification(favorite?.mosque_id ?? null);
@@ -510,7 +511,7 @@ export default function ProfilPage() {
                     {pushStatus === "error" && (
                       <div className="px-5 pb-4">
                         <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
-                          Gagal mengaktifkan notifikasi. Cek koneksi internet dan coba lagi.
+                          Gagal: {pushErrorMsg || "Cek koneksi internet dan coba lagi"}
                         </p>
                       </div>
                     )}

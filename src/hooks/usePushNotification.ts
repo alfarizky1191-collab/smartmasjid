@@ -43,6 +43,7 @@ export type PushStatus = "idle" | "loading" | "subscribed" | "denied" | "error" 
 
 export function usePushNotification(mosque_id: string | null | undefined) {
   const [status, setStatus] = useState<PushStatus>("idle");
+  const [errorMsg, setErrorMsg] = useState<string>("");
 
   const isSupported =
     typeof window !== "undefined" &&
@@ -88,6 +89,7 @@ export function usePushNotification(mosque_id: string | null | undefined) {
     }
 
     setStatus("loading");
+    setErrorMsg("");
 
     // 1. Request permission
     const permission = await Notification.requestPermission();
@@ -98,6 +100,7 @@ export function usePushNotification(mosque_id: string | null | undefined) {
     const reg = await getRegistration();
     if (!reg) {
       console.error("[push] Service Worker not ready");
+      setErrorMsg("Service Worker tidak aktif");
       setStatus("error");
       return;
     }
@@ -126,6 +129,7 @@ export function usePushNotification(mosque_id: string | null | undefined) {
 
       if (error) {
         console.error("[push] Supabase insert error:", error.message, error.code, error.details);
+        setErrorMsg(`DB: ${error.message} (${error.code})`);
         await sub.unsubscribe();
         setStatus("error");
         return;
@@ -134,9 +138,12 @@ export function usePushNotification(mosque_id: string | null | undefined) {
       // 5. Persist
       localStorage.setItem(STORAGE_KEY, mosque_id);
       setStatus("subscribed");
+      setErrorMsg("");
       console.log("[push] Subscribed successfully");
     } catch (err) {
-      console.error("[push] Subscribe error:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[push] Subscribe error:", msg);
+      setErrorMsg(`Error: ${msg}`);
       setStatus("error");
     }
   }, [isSupported, mosque_id]);
@@ -170,6 +177,7 @@ export function usePushNotification(mosque_id: string | null | undefined) {
     isLoading:   status === "loading",
     isDenied:    status === "denied",
     status,
+    errorMsg,
     subscribe,
     unsubscribe,
   };
