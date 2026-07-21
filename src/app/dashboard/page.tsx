@@ -206,6 +206,29 @@ export default function DashboardPage() {
         metadata: { title: announcement },
       });
 
+      // Kirim push notification ke subscriber masjid
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (token && mosqueId) {
+          await fetch("/api/push/send", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              mosque_id: mosqueId,
+              title: "📢 Pengumuman Baru",
+              body: announcement,
+              url: "/app/info",
+            }),
+          });
+        }
+      } catch {
+        // Push gagal tidak boleh block simpan pengumuman
+      }
+
       alert("Pengumuman berhasil ditambah");
     }
 

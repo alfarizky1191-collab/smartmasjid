@@ -159,6 +159,32 @@ export default function EventsPage() {
         metadata: { title, event_date: eventDate, event_time: eventTime },
       });
 
+      // Kirim push notification ke subscriber masjid
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (token && mosqueId) {
+          const dateStr = eventDate
+            ? new Date(eventDate).toLocaleDateString("id-ID", { day: "numeric", month: "long" })
+            : "";
+          await fetch("/api/push/send", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              mosque_id: mosqueId,
+              title: "🗓️ Kegiatan Baru",
+              body: `${title}${dateStr ? " · " + dateStr : ""}`,
+              url: "/app/info",
+            }),
+          });
+        }
+      } catch {
+        // Push gagal tidak boleh block simpan event
+      }
+
       loadEvents(mosqueId);
 
       alert(
