@@ -25,11 +25,21 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY!;
 const VAPID_SUBJECT     = process.env.VAPID_SUBJECT ?? "mailto:admin@smartmasjid.id";
 
 // Service-role client for reading subscriptions (bypasses RLS)
+// Falls back to anon key with explicit headers if service role not configured
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = serviceKey ?? anonKey;
   if (!url || !key) throw new Error("Supabase env vars missing");
-  return createClient(url, key);
+  return createClient(url, key, {
+    global: {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+      },
+    },
+  });
 }
 
 // Anon client authenticated with user JWT
