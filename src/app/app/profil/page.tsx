@@ -52,6 +52,7 @@ export default function ProfilPage() {
     isSubscribed,
     isLoading: pushLoading,
     isDenied: pushDenied,
+    status: pushStatus,
     subscribe: subscribePush,
     unsubscribe: unsubscribePush,
   } = usePushNotification(favorite?.mosque_id ?? null);
@@ -480,6 +481,10 @@ export default function ProfilPage() {
                             ? "Anda akan menerima pengumuman dari masjid ini"
                             : "Terima pengumuman dari masjid ini"}
                         </p>
+                        {/* Debug status — visible di layar */}
+                        <p className="text-slate-600 text-[10px] mt-0.5 font-mono">
+                          status: {pushStatus} | mosque_id: {favorite?.mosque_id ? favorite.mosque_id.slice(0,8)+"…" : "null"}
+                        </p>
                       </div>
 
                       {!pushDenied && (
@@ -500,6 +505,15 @@ export default function ProfilPage() {
                         </button>
                       )}
                     </div>
+
+                    {/* Error state */}
+                    {pushStatus === "error" && (
+                      <div className="px-5 pb-4">
+                        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+                          Gagal mengaktifkan notifikasi. Cek koneksi internet dan coba lagi.
+                        </p>
+                      </div>
+                    )}
 
                     {pushDenied && (
                       <div className="px-5 pb-4">
