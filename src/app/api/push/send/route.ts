@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
   if (typeof notifBody !== "string" || !notifBody)
     return NextResponse.json({ error: "body required" }, { status: 422 });
 
-  // ── RBAC: check user is admin of this mosque ─────────────────────────────
+  // ── RBAC: check user belongs to this mosque ─────────────────────────────
   const { data: profile, error: profileError } = await userClient
     .from("profiles")
     .select("mosque_id, role")
@@ -100,9 +100,6 @@ export async function POST(request: NextRequest) {
   }
   if (profile.mosque_id !== mosque_id) {
     return NextResponse.json({ error: "Forbidden: mosque mismatch" }, { status: 403 });
-  }
-  if (!["admin", "superadmin"].includes(profile.role)) {
-    return NextResponse.json({ error: "Forbidden: insufficient role" }, { status: 403 });
   }
 
   // ── Validate VAPID env ───────────────────────────────────────────────────
