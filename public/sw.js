@@ -10,7 +10,7 @@
  * Cache names are versioned so old caches are cleaned on SW update.
  */
 
-const SW_VERSION = "v2";
+const SW_VERSION = "v3";
 const STATIC_CACHE  = `smartmasjid-static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `smartmasjid-dynamic-${SW_VERSION}`;
 const API_CACHE     = `smartmasjid-api-${SW_VERSION}`;
@@ -124,7 +124,6 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch {
-    // Fallback: treat raw text as body
     data = { body: event.data.text() };
   }
 
@@ -143,7 +142,9 @@ self.addEventListener("push", (event) => {
       badge,
       tag,
       renotify,
-      data: { url },          // passed to notificationclick handler
+      requireInteraction: false,  // auto-dismiss after a while
+      silent: false,              // play sound + vibrate
+      data: { url },
       vibrate: [200, 100, 200],
     })
   );
