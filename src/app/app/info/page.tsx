@@ -124,7 +124,10 @@ export default function InfoPage() {
 
   if (loadState === "error") {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-5">
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-5"
+        style={{ background: "var(--pwa-bg)" }}
+      >
         <ErrorState onRetry={loadData} />
       </div>
     );
@@ -161,16 +164,20 @@ export default function InfoPage() {
       )}
 
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="min-h-screen bg-slate-950">
+        <div className="min-h-screen" style={{ background: "var(--pwa-bg)" }}>
 
           {/* ── Header ──────────────────────────────────────────── */}
           <header
-            className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800"
-            style={{ paddingTop: "env(safe-area-inset-top)" }}
+            className="sticky top-0 z-40 backdrop-blur-xl border-b"
+            style={{
+              background: "var(--pwa-header-bg)",
+              borderColor: "var(--pwa-border)",
+              paddingTop: "env(safe-area-inset-top)",
+            }}
           >
             <div className="px-5 py-4 flex items-center justify-between">
               <div>
-                <h1 className="text-base font-bold text-white">Informasi</h1>
+                <h1 className="text-base font-bold" style={{ color: "var(--pwa-text-primary)" }}>Informasi</h1>
                 {mosque?.name && (
                   <p className="text-xs text-emerald-400 font-medium truncate max-w-[220px]">
                     {mosque.name}
@@ -180,10 +187,11 @@ export default function InfoPage() {
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center active:bg-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="w-9 h-9 rounded-xl flex items-center justify-center active:opacity-70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                style={{ background: "var(--pwa-bg-card)" }}
                 aria-label="Perbarui informasi"
               >
-                <RefreshCw size={16} strokeWidth={2} className="text-slate-400" aria-hidden="true" />
+                <RefreshCw size={16} strokeWidth={2} style={{ color: "var(--pwa-text-muted)" }} aria-hidden="true" />
               </button>
             </div>
 
@@ -205,8 +213,12 @@ export default function InfoPage() {
                     "transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
                     activeTab === tab.id
                       ? "bg-emerald-500 text-black"
-                      : "bg-slate-800 text-slate-400 active:bg-slate-700",
+                      : "active:opacity-70",
                   ].join(" ")}
+                  style={activeTab !== tab.id ? {
+                    background: "var(--pwa-bg-card)",
+                    color: "var(--pwa-text-muted)",
+                  } : undefined}
                 >
                   {tab.icon}
                   {tab.label}
@@ -238,15 +250,20 @@ export default function InfoPage() {
                     {announcements.map((a) => (
                       <li
                         key={a.id}
-                        className="bg-slate-900/70 rounded-2xl border border-slate-700/40 px-4 py-4 flex gap-3"
+                        className="rounded-2xl border px-4 py-4 flex gap-3"
+                        style={{
+                          background: "var(--pwa-bg-card)",
+                          borderColor: "var(--pwa-border-subtle)",
+                        }}
                       >
                         <div className="w-1 shrink-0 bg-yellow-400 rounded-full mt-0.5" aria-hidden="true" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-semibold leading-snug">
+                          <p className="text-sm font-semibold leading-snug" style={{ color: "var(--pwa-text-primary)" }}>
                             {a.title}
                           </p>
                           <time
-                            className="text-slate-500 text-[11px] mt-1.5 block"
+                            className="text-[11px] mt-1.5 block"
+                            style={{ color: "var(--pwa-text-muted)" }}
                             dateTime={a.created_at}
                           >
                             {formatDate(a.created_at)}
@@ -287,28 +304,42 @@ export default function InfoPage() {
                             "rounded-2xl border px-4 py-4 flex gap-3",
                             isToday
                               ? "bg-emerald-500/10 border-emerald-500/30"
-                              : "bg-slate-900/70 border-slate-700/40",
+                              : "",
                           ].join(" ")}
+                          style={!isToday ? {
+                            background: "var(--pwa-bg-card)",
+                            borderColor: "var(--pwa-border-subtle)",
+                          } : undefined}
                         >
                           {/* Date badge */}
                           <div
                             className={[
                               "shrink-0 flex flex-col items-center justify-center w-11 h-14 rounded-2xl",
-                              isToday ? "bg-emerald-500" : "bg-slate-800",
+                              isToday ? "bg-emerald-500" : "",
                             ].join(" ")}
+                            style={!isToday ? { background: "var(--pwa-bg-card-hover)" } : undefined}
                             aria-hidden="true"
                           >
-                            <span className={`text-xl font-extrabold leading-none ${isToday ? "text-black" : "text-white"}`}>
+                            <span
+                              className={`text-xl font-extrabold leading-none ${isToday ? "text-black" : ""}`}
+                              style={!isToday ? { color: "var(--pwa-text-primary)" } : undefined}
+                            >
                               {dayNum}
                             </span>
-                            <span className={`text-[9px] font-bold uppercase ${isToday ? "text-black/70" : "text-slate-400"}`}>
+                            <span
+                              className={`text-[9px] font-bold uppercase ${isToday ? "text-black/70" : ""}`}
+                              style={!isToday ? { color: "var(--pwa-text-muted)" } : undefined}
+                            >
                               {monthStr}
                             </span>
                           </div>
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <p className={`text-sm font-bold leading-snug flex-1 ${isToday ? "text-emerald-300" : "text-white"}`}>
+                              <p
+                                className={`text-sm font-bold leading-snug flex-1 ${isToday ? "text-emerald-300" : ""}`}
+                                style={!isToday ? { color: "var(--pwa-text-primary)" } : undefined}
+                              >
                                 {e.title}
                               </p>
                               {isToday && (
@@ -320,26 +351,26 @@ export default function InfoPage() {
 
                             <div className="flex flex-wrap gap-3 mt-2">
                               {e.speaker && (
-                                <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                                <span className="flex items-center gap-1 text-[11px]" style={{ color: "var(--pwa-text-muted)" }}>
                                   <User size={11} strokeWidth={2} aria-hidden="true" />
                                   {e.speaker}
                                 </span>
                               )}
                               {e.event_time && (
-                                <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                                <span className="flex items-center gap-1 text-[11px]" style={{ color: "var(--pwa-text-muted)" }}>
                                   <Clock size={11} strokeWidth={2} aria-hidden="true" />
                                   <time dateTime={`${e.event_date}T${e.event_time}`}>{e.event_time}</time>
                                 </span>
                               )}
                               {e.location && (
-                                <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                                <span className="flex items-center gap-1 text-[11px]" style={{ color: "var(--pwa-text-muted)" }}>
                                   <MapPin size={11} strokeWidth={2} aria-hidden="true" />
                                   {e.location}
                                 </span>
                               )}
                             </div>
 
-                            <p className="text-[10px] text-slate-600 mt-1">
+                            <p className="text-[10px] mt-1" style={{ color: "var(--pwa-text-muted)" }}>
                               {formatEventDate(e.event_date)}
                             </p>
                           </div>

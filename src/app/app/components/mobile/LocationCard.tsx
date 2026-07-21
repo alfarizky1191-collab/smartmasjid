@@ -26,10 +26,16 @@ export default function LocationCard({
     <section className="mx-5 mt-5" aria-label="Lokasi Masjid">
       <div className="flex items-center gap-2 mb-3">
         <MapPin size={15} className="text-yellow-400" strokeWidth={2} aria-hidden="true" />
-        <h2 className="text-sm font-bold text-white">Lokasi</h2>
+        <h2 className="text-sm font-bold" style={{ color: "var(--pwa-text-primary)" }}>Lokasi</h2>
       </div>
 
-      <div className="bg-slate-900/70 rounded-3xl border border-slate-700/40 p-4">
+      <div
+        className="rounded-3xl border p-4"
+        style={{
+          background: "var(--pwa-bg-card)",
+          borderColor: "var(--pwa-border-subtle)",
+        }}
+      >
         <div className="flex items-start gap-3">
           <div
             className="w-9 h-9 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0 mt-0.5"
@@ -38,7 +44,12 @@ export default function LocationCard({
             <MapPin size={16} className="text-yellow-400" strokeWidth={2} />
           </div>
           <address className="flex-1 min-w-0 not-italic">
-            <p className="text-white text-sm font-medium leading-snug">{fullAddress}</p>
+            <p
+              className="text-sm font-medium leading-snug"
+              style={{ color: "var(--pwa-text-primary)" }}
+            >
+              {fullAddress}
+            </p>
           </address>
         </div>
 

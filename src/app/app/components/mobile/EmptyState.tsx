@@ -28,7 +28,11 @@ export default function EmptyState({
       {/* Emoji with soft glow ring */}
       <div className="relative mb-5">
         <div
-          className="w-20 h-20 rounded-3xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center shadow-inner"
+          className="w-20 h-20 rounded-3xl border flex items-center justify-center shadow-inner"
+          style={{
+            background: "var(--pwa-bg-card-hover)",
+            borderColor: "var(--pwa-border)",
+          }}
           aria-hidden="true"
         >
           <span className="text-4xl select-none">{emoji}</span>
@@ -40,10 +44,10 @@ export default function EmptyState({
         />
       </div>
 
-      <h3 className="text-white font-bold text-base mb-1.5">{title}</h3>
+      <h3 className="font-bold text-base mb-1.5" style={{ color: "var(--pwa-text-primary)" }}>{title}</h3>
 
       {subtitle && (
-        <p className="text-slate-500 text-sm leading-relaxed max-w-[220px]">
+        <p className="text-sm leading-relaxed max-w-[220px]" style={{ color: "var(--pwa-text-muted)" }}>
           {subtitle}
         </p>
       )}

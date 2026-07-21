@@ -19,7 +19,11 @@ import {
   MapPin, Phone, MessageCircle, Globe, Mail,
   RefreshCw, Tv2, Building2, Info, Clock,
   ExternalLink, ChevronRight, Bell, BellOff,
+  Sun, Moon, Monitor, Timer,
 } from "lucide-react";
+
+import { useTheme } from "@/lib/themes/ThemeProvider";
+import type { ThemeMode } from "@/lib/themes/ThemeProvider";
 
 import { usePushNotification } from "@/hooks/usePushNotification";
 
@@ -41,6 +45,8 @@ type LoadState = "idle" | "loading" | "ready" | "error";
 export default function ProfilPage() {
   const router = useRouter();
   const { state: favState, favorite, recent, selectMosque } = useFavoriteMosque();
+
+  const { theme: activeTheme, setTheme } = useTheme();
 
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [mosque,    setMosque]    = useState<MosqueRow | null>(null);
@@ -526,6 +532,106 @@ export default function ProfilPage() {
                   </div>
                 </section>
               )}
+
+              {/* ── Tampilan (Theme) ──────────────────────────────── */}
+              <section aria-label="Pengaturan tampilan">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  Tampilan
+                </p>
+                <div className="bg-slate-900/70 rounded-3xl border border-slate-700/40 overflow-hidden">
+                  <div className="px-5 py-4">
+                    <p className="text-xs text-slate-500 mb-3">Pilih mode tampilan aplikasi</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(
+                        [
+                          {
+                            id: "light" as ThemeMode,
+                            label: "Terang",
+                            desc: "Tampilan cerah",
+                            icon: Sun,
+                            iconColor: "text-yellow-400",
+                            bgActive: "bg-yellow-500/15 border-yellow-400/50",
+                            bgIdle: "bg-slate-800/60 border-slate-700/40",
+                          },
+                          {
+                            id: "dark" as ThemeMode,
+                            label: "Gelap",
+                            desc: "Tampilan gelap",
+                            icon: Moon,
+                            iconColor: "text-blue-400",
+                            bgActive: "bg-blue-500/15 border-blue-400/50",
+                            bgIdle: "bg-slate-800/60 border-slate-700/40",
+                          },
+                          {
+                            id: "system" as ThemeMode,
+                            label: "Sistem",
+                            desc: "Ikut pengaturan HP",
+                            icon: Monitor,
+                            iconColor: "text-purple-400",
+                            bgActive: "bg-purple-500/15 border-purple-400/50",
+                            bgIdle: "bg-slate-800/60 border-slate-700/40",
+                          },
+                          {
+                            id: "auto" as ThemeMode,
+                            label: "Otomatis",
+                            desc: "Siang terang, malam gelap",
+                            icon: Timer,
+                            iconColor: "text-emerald-400",
+                            bgActive: "bg-emerald-500/15 border-emerald-400/50",
+                            bgIdle: "bg-slate-800/60 border-slate-700/40",
+                          },
+                        ] as const
+                      ).map(({ id, label, desc, icon: Icon, iconColor, bgActive, bgIdle }) => {
+                        const isActive = activeTheme === id;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setTheme(id)}
+                            aria-pressed={isActive}
+                            aria-label={`Mode tampilan: ${label} — ${desc}`}
+                            className={`flex items-start gap-2.5 rounded-2xl border p-3 text-left transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
+                              isActive ? bgActive : bgIdle
+                            }`}
+                          >
+                            <div
+                              className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                                isActive ? "bg-white/10" : "bg-slate-700/60"
+                              }`}
+                              aria-hidden="true"
+                            >
+                              <Icon size={14} className={iconColor} strokeWidth={2} />
+                            </div>
+                            <div className="min-w-0">
+                              <p
+                                className={`text-xs font-bold leading-tight ${
+                                  isActive ? "text-white" : "text-slate-400"
+                                }`}
+                              >
+                                {label}
+                                {isActive && (
+                                  <span className="ml-1.5 text-[9px] font-semibold text-emerald-400">✓</span>
+                                )}
+                              </p>
+                              <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {activeTheme === "auto" && (
+                      <p className="mt-3 text-[11px] text-emerald-400/80 text-center">
+                        🕐 Mode otomatis aktif — terang pukul 06:00–18:00, gelap pukul 18:00–06:00
+                      </p>
+                    )}
+                    {activeTheme === "system" && (
+                      <p className="mt-3 text-[11px] text-purple-400/80 text-center">
+                        📱 Mengikuti pengaturan dark/light mode di perangkat
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
 
               {/* ── App Info ──────────────────────────────────────────── */}
               <section aria-label="Informasi aplikasi">

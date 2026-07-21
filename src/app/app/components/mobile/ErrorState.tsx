@@ -56,11 +56,11 @@ export default function ErrorState({
         )}
       </div>
 
-      <h3 className="text-white font-bold text-base mb-1.5">
+      <h3 className="font-bold text-base mb-1.5" style={{ color: "var(--pwa-text-primary)" }}>
         {title ?? (offline ? "Tidak Ada Koneksi" : "Gagal Memuat")}
       </h3>
 
-      <p className="text-slate-500 text-sm leading-relaxed max-w-[240px]">
+      <p className="text-sm leading-relaxed max-w-[240px]" style={{ color: "var(--pwa-text-muted)" }}>
         {message ??
           (offline
             ? "Periksa koneksi internet Anda. Data tersimpan ditampilkan."

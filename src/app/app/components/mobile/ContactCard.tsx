@@ -91,10 +91,16 @@ export default function ContactCard(props: ContactCardProps) {
     <section className="mx-5 mt-5" aria-label="Kontak Masjid">
       <div className="flex items-center gap-2 mb-3">
         <Phone size={15} className="text-emerald-400" strokeWidth={2} aria-hidden="true" />
-        <h2 className="text-sm font-bold text-white">Kontak</h2>
+        <h2 className="text-sm font-bold" style={{ color: "var(--pwa-text-primary)" }}>Kontak</h2>
       </div>
 
-      <div className="bg-slate-900/70 rounded-3xl border border-slate-700/40 overflow-hidden">
+      <div
+        className="rounded-3xl border overflow-hidden"
+        style={{
+          background: "var(--pwa-bg-card)",
+          borderColor: "var(--pwa-border-subtle)",
+        }}
+      >
         {items.map((item, i) => {
           const Icon = item.icon;
           return (
@@ -106,16 +112,17 @@ export default function ContactCard(props: ContactCardProps) {
               aria-label={`${item.label}: ${item.value}`}
               className={[
                 "flex items-center gap-3 px-4 py-3.5",
-                "active:bg-slate-800/70 transition-colors",
+                "transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400",
-                i < items.length - 1 ? "border-b border-slate-700/40" : "",
+                i < items.length - 1 ? "border-b" : "",
               ].join(" ")}
+              style={i < items.length - 1 ? { borderColor: "var(--pwa-border-subtle)" } : undefined}
             >
               <div className={`w-8 h-8 rounded-xl ${item.bgClass} border ${item.borderClass} flex items-center justify-center shrink-0`}>
                 <Icon size={15} strokeWidth={2} className={item.colorClass} aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-slate-500 font-medium">{item.label}</p>
+                <p className="text-[11px] font-medium" style={{ color: "var(--pwa-text-muted)" }}>{item.label}</p>
                 <p className={`text-sm font-semibold truncate ${item.colorClass}`}>{item.value}</p>
               </div>
             </a>

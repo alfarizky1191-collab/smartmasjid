@@ -220,7 +220,10 @@ export default function SholatPage() {
 
   if (loadState === "error") {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-5">
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-5"
+        style={{ background: "var(--pwa-bg)" }}
+      >
         <ErrorState
           offline={offline}
           onRetry={loadData}
@@ -232,16 +235,20 @@ export default function SholatPage() {
   return (
     <PageTransition variant="slide-up">
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="min-h-screen bg-slate-950">
+        <div className="min-h-screen" style={{ background: "var(--pwa-bg)" }}>
 
           {/* ── Header ────────────────────────────────────────────── */}
           <header
-            className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800"
-            style={{ paddingTop: "env(safe-area-inset-top)" }}
+            className="sticky top-0 z-40 backdrop-blur-xl border-b"
+            style={{
+              background: "var(--pwa-header-bg)",
+              borderColor: "var(--pwa-border)",
+              paddingTop: "env(safe-area-inset-top)",
+            }}
           >
             <div className="px-5 py-4 flex items-center justify-between">
               <div>
-                <h1 className="text-base font-bold text-white">Jadwal Sholat</h1>
+                <h1 className="text-base font-bold" style={{ color: "var(--pwa-text-primary)" }}>Jadwal Sholat</h1>
                 {mosque?.name && (
                   <p className="text-xs text-emerald-400 font-medium truncate max-w-[220px]">
                     {mosque.name}
@@ -251,10 +258,11 @@ export default function SholatPage() {
               <button
                 type="button"
                 onClick={handleRefresh}
-                className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center active:bg-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                className="w-9 h-9 rounded-xl flex items-center justify-center active:opacity-70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                style={{ background: "var(--pwa-bg-card)" }}
                 aria-label="Perbarui jadwal sholat"
               >
-                <RefreshCw size={16} strokeWidth={2} className="text-slate-400" aria-hidden="true" />
+                <RefreshCw size={16} strokeWidth={2} style={{ color: "var(--pwa-text-muted)" }} aria-hidden="true" />
               </button>
             </div>
             <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" aria-hidden="true" />
@@ -276,8 +284,8 @@ export default function SholatPage() {
             <section aria-label="Jadwal sholat hari ini">
               <div className="flex items-center gap-2 mb-3">
                 <Clock size={15} className="text-emerald-400" strokeWidth={2} aria-hidden="true" />
-                <h2 className="text-sm font-bold text-white">Hari Ini</h2>
-                <span className="text-[11px] text-slate-500">
+                <h2 className="text-sm font-bold" style={{ color: "var(--pwa-text-primary)" }}>Hari Ini</h2>
+                <span className="text-[11px]" style={{ color: "var(--pwa-text-muted)" }}>
                   {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
                 </span>
               </div>
@@ -289,17 +297,26 @@ export default function SholatPage() {
                   subtitle="Tidak dapat mengambil jadwal sholat. Periksa koneksi."
                 />
               ) : (
-                <div className="bg-slate-900/70 rounded-3xl border border-slate-700/40 overflow-hidden">
+                <div
+                  className="rounded-3xl border overflow-hidden"
+                  style={{
+                    background: "var(--pwa-bg-card)",
+                    borderColor: "var(--pwa-border-subtle)",
+                  }}
+                >
                   {/* Syuruq badge */}
                   {syuruqToday && (
-                    <div className="px-4 py-2.5 border-b border-slate-700/40 flex items-center gap-2">
+                    <div
+                      className="px-4 py-2.5 border-b flex items-center gap-2"
+                      style={{ borderColor: "var(--pwa-border-subtle)" }}
+                    >
                       <Sunrise size={13} className="text-yellow-300" strokeWidth={2} aria-hidden="true" />
                       <span className="text-yellow-300 text-xs font-semibold">
                         Syuruq {syuruqToday}
                       </span>
                     </div>
                   )}
-                  <ul className="divide-y divide-slate-700/40" role="list" aria-label="Jadwal sholat hari ini">
+                  <ul className="divide-y" style={{ borderColor: "var(--pwa-border-subtle)" }} role="list" aria-label="Jadwal sholat hari ini">
                     {decoratedToday.map((p) => (
                       <PrayerRow key={p.name} prayer={p} />
                     ))}
@@ -311,9 +328,9 @@ export default function SholatPage() {
             {/* ── Tomorrow's Schedule ───────────────────────────── */}
             <section aria-label="Jadwal sholat besok">
               <div className="flex items-center gap-2 mb-3">
-                <CalendarDays size={15} className="text-slate-400" strokeWidth={2} aria-hidden="true" />
-                <h2 className="text-sm font-bold text-white">Besok</h2>
-                <span className="text-[11px] text-slate-500">
+                <CalendarDays size={15} strokeWidth={2} aria-hidden="true" style={{ color: "var(--pwa-text-muted)" }} />
+                <h2 className="text-sm font-bold" style={{ color: "var(--pwa-text-primary)" }}>Besok</h2>
+                <span className="text-[11px]" style={{ color: "var(--pwa-text-muted)" }}>
                   {(() => {
                     const d = new Date();
                     d.setDate(d.getDate() + 1);
@@ -323,20 +340,35 @@ export default function SholatPage() {
               </div>
 
               {tomorrowPrayers.length === 0 ? (
-                <div className="bg-slate-900/70 rounded-3xl border border-slate-700/40 p-5 text-center">
-                  <p className="text-slate-500 text-sm">Jadwal besok tidak tersedia</p>
+                <div
+                  className="rounded-3xl border p-5 text-center"
+                  style={{
+                    background: "var(--pwa-bg-card)",
+                    borderColor: "var(--pwa-border-subtle)",
+                  }}
+                >
+                  <p className="text-sm" style={{ color: "var(--pwa-text-muted)" }}>Jadwal besok tidak tersedia</p>
                 </div>
               ) : (
-                <div className="bg-slate-900/70 rounded-3xl border border-slate-700/40 overflow-hidden opacity-75">
+                <div
+                  className="rounded-3xl border overflow-hidden opacity-75"
+                  style={{
+                    background: "var(--pwa-bg-card)",
+                    borderColor: "var(--pwa-border-subtle)",
+                  }}
+                >
                   {syuruqTomorrow && (
-                    <div className="px-4 py-2.5 border-b border-slate-700/40 flex items-center gap-2">
+                    <div
+                      className="px-4 py-2.5 border-b flex items-center gap-2"
+                      style={{ borderColor: "var(--pwa-border-subtle)" }}
+                    >
                       <Sunrise size={13} className="text-yellow-300/60" strokeWidth={2} aria-hidden="true" />
                       <span className="text-yellow-300/60 text-xs font-semibold">
                         Syuruq {syuruqTomorrow}
                       </span>
                     </div>
                   )}
-                  <ul className="divide-y divide-slate-700/40" role="list" aria-label="Jadwal sholat besok">
+                  <ul className="divide-y" style={{ borderColor: "var(--pwa-border-subtle)" }} role="list" aria-label="Jadwal sholat besok">
                     {tomorrowPrayers.map((p) => (
                       <PrayerRow key={p.name} prayer={p} dim />
                     ))}
@@ -359,7 +391,7 @@ export default function SholatPage() {
               >
                 <div className="flex items-center gap-2">
                   <CalendarDays size={15} className="text-emerald-400" strokeWidth={2} aria-hidden="true" />
-                  <h2 className="text-sm font-bold text-white">Jadwal 30 Hari</h2>
+                  <h2 className="text-sm font-bold" style={{ color: "var(--pwa-text-primary)" }}>Jadwal 30 Hari</h2>
                 </div>
                 <ChevronDown
                   size={16}
@@ -373,7 +405,7 @@ export default function SholatPage() {
                   {loading30 ? (
                     <div className="space-y-2">
                       {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-14 bg-slate-800 rounded-2xl animate-pulse" />
+                        <div key={i} className="h-14 rounded-2xl animate-pulse" style={{ background: "var(--pwa-skeleton)" }} />
                       ))}
                     </div>
                   ) : schedule30.length === 0 ? (
@@ -384,8 +416,14 @@ export default function SholatPage() {
                       action={{ label: "Coba lagi", onClick: handleLoad30 }}
                     />
                   ) : (
-                    <div className="bg-slate-900/70 rounded-3xl border border-slate-700/40 overflow-hidden">
-                      <ul className="divide-y divide-slate-700/40" role="list">
+                    <div
+                      className="rounded-3xl border overflow-hidden"
+                      style={{
+                        background: "var(--pwa-bg-card)",
+                        borderColor: "var(--pwa-border-subtle)",
+                      }}
+                    >
+                      <ul className="divide-y" style={{ borderColor: "var(--pwa-border-subtle)" }} role="list">
                         {schedule30.map((day) => {
                           const isToday = day.date === todayStr;
                           return (
@@ -397,7 +435,9 @@ export default function SholatPage() {
                               ].join(" ")}
                             >
                               <div className="flex items-center justify-between mb-1.5">
-                                <span className={`text-xs font-bold ${isToday ? "text-emerald-400" : "text-slate-400"}`}>
+                                <span className={`text-xs font-bold ${isToday ? "text-emerald-400" : ""}`}
+                                  style={!isToday ? { color: "var(--pwa-text-muted)" } : undefined}
+                                >
                                   {day.label}
                                 </span>
                                 {isToday && (
@@ -414,9 +454,9 @@ export default function SholatPage() {
                               </div>
                               <div className="flex gap-2 flex-wrap">
                                 {day.prayers.map((p) => (
-                                  <span key={p.name} className="text-[10px] text-slate-400">
-                                    <span className="text-slate-600">{p.name} </span>
-                                    <span className="font-semibold text-white tabular-nums">{p.time}</span>
+                                  <span key={p.name} className="text-[10px]" style={{ color: "var(--pwa-text-muted)" }}>
+                                    <span style={{ color: "var(--pwa-text-muted)" }}>{p.name} </span>
+                                    <span className="font-semibold tabular-nums" style={{ color: "var(--pwa-text-primary)" }}>{p.time}</span>
                                   </span>
                                 ))}
                               </div>
@@ -454,7 +494,8 @@ function PrayerRow({ prayer, dim = false }: { prayer: PrayerEntry; dim?: boolean
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" aria-hidden="true" />
         )}
         <span
-          className={`text-sm font-semibold ${prayer.isNext ? "text-emerald-300" : "text-slate-300"}`}
+          className={`text-sm font-semibold ${prayer.isNext ? "text-emerald-300" : ""}`}
+          style={!prayer.isNext ? { color: "var(--pwa-text-secondary)" } : undefined}
           aria-label={`Waktu sholat ${prayer.name}`}
         >
           {prayer.name}
@@ -466,7 +507,8 @@ function PrayerRow({ prayer, dim = false }: { prayer: PrayerEntry; dim?: boolean
         )}
       </div>
       <time
-        className={`text-base font-bold tabular-nums ${prayer.isNext ? "text-emerald-300" : "text-white"}`}
+        className={`text-base font-bold tabular-nums ${prayer.isNext ? "text-emerald-300" : ""}`}
+        style={!prayer.isNext ? { color: "var(--pwa-text-primary)" } : undefined}
         dateTime={prayer.time}
       >
         {prayer.time}

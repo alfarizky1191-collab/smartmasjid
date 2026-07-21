@@ -20,8 +20,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="relative min-h-screen bg-slate-950 text-white antialiased"
-      style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+      className="relative min-h-screen antialiased"
+      style={{
+        background: "var(--pwa-bg)",
+        color: "var(--pwa-text-primary)",
+        WebkitOverflowScrolling: "touch",
+      } as React.CSSProperties}
     >
       <div style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
         {children}

@@ -167,3 +167,40 @@
 .animate-page-scale {
   animation: page-scale 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* ── SmartMasjid PWA Theme Variables ──────────────────────────────────── */
+:root {
+  --pwa-bg: #ffffff;
+  --pwa-bg-secondary: #f8fafc;
+  --pwa-bg-card: #f1f5f9;
+  --pwa-bg-card-hover: #e2e8f0;
+  --pwa-border: #e2e8f0;
+  --pwa-border-subtle: #f1f5f9;
+  --pwa-text-primary: #0f172a;
+  --pwa-text-secondary: #475569;
+  --pwa-text-muted: #94a3b8;
+  --pwa-nav-bg: rgba(255,255,255,0.92);
+  --pwa-nav-border: #e2e8f0;
+  --pwa-header-bg: rgba(255,255,255,0.95);
+  --pwa-input-bg: #f8fafc;
+  --pwa-skeleton: #e2e8f0;
+  --pwa-skeleton-shine: #f8fafc;
+}
+
+.dark {
+  --pwa-bg: #020617;
+  --pwa-bg-secondary: #0f172a;
+  --pwa-bg-card: #1e293b;
+  --pwa-bg-card-hover: #334155;
+  --pwa-border: rgba(148,163,184,0.15);
+  --pwa-border-subtle: rgba(148,163,184,0.08);
+  --pwa-text-primary: #f8fafc;
+  --pwa-text-secondary: #cbd5e1;
+  --pwa-text-muted: #64748b;
+  --pwa-nav-bg: rgba(15,23,42,0.92);
+  --pwa-nav-border: rgba(148,163,184,0.15);
+  --pwa-header-bg: rgba(2,6,23,0.95);
+  --pwa-input-bg: #1e293b;
+  --pwa-skeleton: #1e293b;
+  --pwa-skeleton-shine: #334155;
+}

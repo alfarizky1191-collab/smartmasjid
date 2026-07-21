@@ -80,7 +80,7 @@ export default function QuickAction({
     <section className="mx-5">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-1 h-4 bg-emerald-400 rounded-full" />
-        <h3 className="text-sm font-bold text-white">Akses Cepat</h3>
+        <h3 className="text-sm font-bold" style={{ color: "var(--pwa-text-primary)" }}>Akses Cepat</h3>
       </div>
 
       <div className="grid grid-cols-4 gap-3">
@@ -97,14 +97,23 @@ export default function QuickAction({
 
           const content = (
             <>
-              <div className="w-10 h-10 rounded-xl bg-slate-800/80 flex items-center justify-center">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: "var(--pwa-bg-card-hover)" }}
+              >
                 <Icon size={20} strokeWidth={1.8} className={styles.icon} />
               </div>
-              <span className="text-[11px] font-semibold text-white text-center leading-tight">
+              <span
+                className="text-[11px] font-semibold text-center leading-tight"
+                style={{ color: "var(--pwa-text-primary)" }}
+              >
                 {action.label}
               </span>
               {action.sublabel && (
-                <span className="text-[9px] text-slate-500 text-center leading-tight">
+                <span
+                  className="text-[9px] text-center leading-tight"
+                  style={{ color: "var(--pwa-text-muted)" }}
+                >
                   {action.sublabel}
                 </span>
               )}

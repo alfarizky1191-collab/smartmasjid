@@ -271,17 +271,21 @@ export default function AppHomePage() {
 
   if (loadState === "not_found") {
     return (
-      <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4 px-8 text-center" role="alert">
+      <main
+        className="min-h-screen flex flex-col items-center justify-center gap-4 px-8 text-center"
+        style={{ background: "var(--pwa-bg)" }}
+        role="alert"
+      >
         <div className="text-5xl" role="img" aria-label="Sedih">😔</div>
-        <h1 className="text-white text-xl font-bold">Masjid Tidak Ditemukan</h1>
-        <p className="text-slate-400 text-sm">
+        <h1 className="text-xl font-bold" style={{ color: "var(--pwa-text-primary)" }}>Masjid Tidak Ditemukan</h1>
+        <p className="text-sm" style={{ color: "var(--pwa-text-muted)" }}>
           Masjid dengan slug <span className="text-amber-400 font-mono">{slug}</span> tidak ditemukan di database.
         </p>
-        <div className="bg-slate-900 rounded-xl px-4 py-3 mt-2 max-w-sm">
-          <p className="text-slate-300 text-xs leading-relaxed">
+        <div className="rounded-xl px-4 py-3 mt-2 max-w-sm" style={{ background: "var(--pwa-bg-card)" }}>
+          <p className="text-xs leading-relaxed" style={{ color: "var(--pwa-text-secondary)" }}>
             Kemungkinan penyebab:
           </p>
-          <ul className="text-slate-400 text-xs text-left mt-2 space-y-1">
+          <ul className="text-xs text-left mt-2 space-y-1" style={{ color: "var(--pwa-text-muted)" }}>
             <li>• Masjid belum terdaftar atau dihapus</li>
             <li>• Slug berubah setelah update</li>
             <li>• Data lama tersimpan di perangkat</li>
@@ -304,10 +308,14 @@ export default function AppHomePage() {
 
   if (loadState === "error") {
     return (
-      <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4 px-8 text-center" role="alert">
+      <main
+        className="min-h-screen flex flex-col items-center justify-center gap-4 px-8 text-center"
+        style={{ background: "var(--pwa-bg)" }}
+        role="alert"
+      >
         <div className="text-5xl" role="img" aria-label="Peringatan">⚠️</div>
-        <h1 className="text-white text-xl font-bold">Gagal Memuat Data</h1>
-        <p className="text-slate-400 text-sm">Periksa koneksi internet dan coba lagi.</p>
+        <h1 className="text-xl font-bold" style={{ color: "var(--pwa-text-primary)" }}>Gagal Memuat Data</h1>
+        <p className="text-sm" style={{ color: "var(--pwa-text-muted)" }}>Periksa koneksi internet dan coba lagi.</p>
         <button
           type="button"
           onClick={() => window.location.reload()}
@@ -324,7 +332,9 @@ export default function AppHomePage() {
   return (
     <PageTransition variant="slide-up">
       <PullToRefresh onRefresh={async () => { window.location.reload(); }}>
-    <div className={`min-h-screen transition-colors duration-500 ${showAdzan ? "bg-yellow-950" : "bg-slate-950"}`}>
+    <div className={`min-h-screen transition-colors duration-500 ${showAdzan ? "bg-yellow-950" : ""}`}
+      style={!showAdzan ? { background: "var(--pwa-bg)" } : undefined}
+    >
 
       {/* ── 1. Header ─────────────────────────────────────────────── */}
       <MobileHeader
@@ -363,9 +373,9 @@ export default function AppHomePage() {
           )}
 
           <div>
-            <h1 className="text-xl font-extrabold text-white leading-tight">{mosque?.name}</h1>
+            <h1 className="text-xl font-extrabold leading-tight" style={{ color: "var(--pwa-text-primary)" }}>{mosque?.name}</h1>
             {mosque?.tagline && (
-              <p className="text-xs text-slate-400 mt-0.5 italic leading-snug">{mosque.tagline}</p>
+              <p className="text-xs mt-0.5 italic leading-snug" style={{ color: "var(--pwa-text-muted)" }}>{mosque.tagline}</p>
             )}
             {locationText && (
               <p className="text-xs text-emerald-400 font-medium mt-0.5">{locationText}</p>
@@ -402,8 +412,8 @@ export default function AppHomePage() {
               🔔
             </div>
             <div>
-              <p className="text-sm font-bold text-white leading-snug">Notifikasi Waktu Sholat</p>
-              <p className="text-xs text-slate-300">
+              <p className="text-sm font-bold leading-snug" style={{ color: "var(--pwa-text-primary)" }}>Notifikasi Waktu Sholat</p>
+              <p className="text-xs" style={{ color: "var(--pwa-text-secondary)" }}>
                 {push.isSubscribed ? "Notifikasi adzan & kegiatan aktif" : "Dapatkan info adzan & kegiatan masjid"}
               </p>
             </div>

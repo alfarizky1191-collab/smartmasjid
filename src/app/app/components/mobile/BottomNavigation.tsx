@@ -41,7 +41,13 @@ export default function BottomNavigation() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {/* Glass blur bar */}
-      <div className="bg-slate-900/90 backdrop-blur-xl border-t border-slate-700/50">
+      <div
+        className="backdrop-blur-xl border-t"
+        style={{
+          background: "var(--pwa-nav-bg)",
+          borderColor: "var(--pwa-nav-border)",
+        }}
+      >
         <div className="flex items-stretch justify-around px-2 h-16">
           {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
             const isActive =
@@ -56,8 +62,9 @@ export default function BottomNavigation() {
                 className={`
                   flex flex-1 flex-col items-center justify-center gap-0.5
                   transition-all duration-200 relative
-                  ${isActive ? "text-emerald-400" : "text-slate-500"}
+                  ${isActive ? "text-emerald-400" : ""}
                 `}
+                style={isActive ? undefined : { color: "var(--pwa-text-muted)" }}
               >
                 {/* Active pill indicator */}
                 {isActive && (
@@ -78,8 +85,9 @@ export default function BottomNavigation() {
 
                 <span
                   className={`text-[10px] font-semibold tracking-wide transition-all duration-200 ${
-                    isActive ? "text-emerald-400" : "text-slate-500"
+                    isActive ? "text-emerald-400" : ""
                   }`}
+                  style={isActive ? undefined : { color: "var(--pwa-text-muted)" }}
                 >
                   {label}
                 </span>

@@ -44,7 +44,10 @@ const DateDisplay = memo(function DateDisplay() {
 
   return (
     <div className="mt-2 text-center">
-      <p className="text-sm sm:text-base font-bold text-slate-200 tracking-wide">
+      <p
+        className="text-sm sm:text-base font-bold tracking-wide"
+        style={{ color: "var(--pwa-text-secondary)" }}
+      >
         {gregorian}
       </p>
       {hijri && (
@@ -149,7 +152,7 @@ export default memo(function ClockWidget({}: ClockWidgetProps) {
         </span>
       </div>
 
-      {/* Large Digital Clock */}
+      {/* Large Digital Clock — keep emerald-300 accent as-is */}
       <div className="flex items-baseline justify-center gap-1 drop-shadow-lg">
         <p
           className="text-6xl sm:text-7xl font-black tracking-wider font-mono text-emerald-300 tabular-nums"
@@ -157,7 +160,10 @@ export default memo(function ClockWidget({}: ClockWidgetProps) {
         >
           {clock.slice(0, 5)}
         </p>
-        <span className="text-slate-400 text-xl font-mono font-bold tabular-nums">
+        <span
+          className="text-xl font-mono font-bold tabular-nums"
+          style={{ color: "var(--pwa-text-muted)" }}
+        >
           {clock.slice(5)}
         </span>
       </div>

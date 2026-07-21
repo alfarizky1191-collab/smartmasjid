@@ -29,8 +29,12 @@ export default function MosqueCard({
         "transition-all duration-150 active:scale-[0.98] text-left",
         isSelected
           ? "bg-emerald-500/10 border-emerald-500/40"
-          : "bg-slate-900/70 border-slate-700/40 active:bg-slate-800/70",
+          : "",
       ].join(" ")}
+      style={!isSelected ? {
+        background: "var(--pwa-bg-card)",
+        borderColor: "var(--pwa-border-subtle)",
+      } : undefined}
       aria-pressed={isSelected}
       aria-label={`Pilih ${mosque.name}${location ? ", " + location : ""}`}
     >
@@ -53,7 +57,10 @@ export default function MosqueCard({
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className={`text-sm font-bold truncate ${isSelected ? "text-emerald-300" : "text-white"}`}>
+          <p
+            className={`text-sm font-bold truncate ${isSelected ? "text-emerald-300" : ""}`}
+            style={!isSelected ? { color: "var(--pwa-text-primary)" } : undefined}
+          >
             {mosque.name}
           </p>
           {badge && (
@@ -64,8 +71,8 @@ export default function MosqueCard({
         </div>
         {location && (
           <div className="flex items-center gap-1 mt-0.5">
-            <MapPin size={11} className="text-slate-500 shrink-0" strokeWidth={2} aria-hidden="true" />
-            <span className="text-[11px] text-slate-400 truncate">{location}</span>
+            <MapPin size={11} strokeWidth={2} aria-hidden="true" style={{ color: "var(--pwa-text-muted)" }} />
+            <span className="text-[11px] truncate" style={{ color: "var(--pwa-text-muted)" }}>{location}</span>
           </div>
         )}
       </div>
@@ -76,7 +83,7 @@ export default function MosqueCard({
           <span className="text-black text-[10px] font-bold">✓</span>
         </div>
       ) : (
-        <ChevronRight size={16} strokeWidth={2} className="text-slate-600 shrink-0" aria-hidden="true" />
+        <ChevronRight size={16} strokeWidth={2} aria-hidden="true" style={{ color: "var(--pwa-text-muted)" }} />
       )}
     </button>
   );

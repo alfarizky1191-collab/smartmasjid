@@ -22,8 +22,20 @@ export default function PrayerCard({
 
   return (
     <section className="mx-4 sm:mx-5" aria-label="Jadwal Sholat">
-      <div className="bg-slate-900/90 backdrop-blur-xl rounded-3xl border border-emerald-500/30 overflow-hidden shadow-xl">
-        <div className="px-5 py-3.5 border-b border-emerald-500/20 flex items-center justify-between bg-emerald-950/40">
+      <div
+        className="backdrop-blur-xl rounded-3xl border overflow-hidden shadow-xl"
+        style={{
+          background: "var(--pwa-bg-card)",
+          borderColor: "rgba(16,185,129,0.3)",
+        }}
+      >
+        <div
+          className="px-5 py-3.5 border-b flex items-center justify-between"
+          style={{
+            borderColor: "rgba(16,185,129,0.2)",
+            background: "rgba(6,78,59,0.2)",
+          }}
+        >
           <div className="flex items-center gap-2">
             <Clock size={18} className="text-amber-400" strokeWidth={2.5} aria-hidden="true" />
             <span className="text-sm font-extrabold text-amber-300 uppercase tracking-wider">
@@ -49,9 +61,13 @@ export default function PrayerCard({
                 "flex flex-col items-center justify-center py-3.5 px-2 rounded-2xl border transition-all duration-300",
                 prayer.isNext
                   ? "bg-gradient-to-b from-amber-500/20 via-slate-900 to-amber-950/40 border-amber-400 shadow-md shadow-amber-500/20 scale-[1.02]"
-                  : "bg-slate-950/70 border-emerald-500/10 hover:border-emerald-500/30",
+                  : "",
                 prayer.isDone ? "opacity-50" : "",
               ].join(" ")}
+              style={!prayer.isNext ? {
+                background: "var(--pwa-bg)",
+                borderColor: "rgba(16,185,129,0.1)",
+              } : undefined}
             >
               <span
                 className={`text-xs sm:text-sm font-extrabold uppercase tracking-wide mb-1 ${
@@ -62,8 +78,9 @@ export default function PrayerCard({
               </span>
               <time
                 className={`text-xl sm:text-2xl font-black font-mono tracking-tight tabular-nums ${
-                  prayer.isNext ? "text-white drop-shadow-sm" : "text-slate-100"
+                  prayer.isNext ? "text-white drop-shadow-sm" : ""
                 }`}
+                style={!prayer.isNext ? { color: "var(--pwa-text-primary)" } : undefined}
                 dateTime={prayer.time}
               >
                 {prayer.time}

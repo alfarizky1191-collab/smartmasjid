@@ -3,6 +3,7 @@ import Script from "next/script";
 import AppShell      from "./components/mobile/AppShell";
 import InstallPrompt from "./components/mobile/InstallPrompt";
 import OfflineBanner from "./components/mobile/OfflineBanner";
+import { ThemeProvider } from "@/lib/themes/ThemeProvider";
 
 // ─── PWA Metadata ─────────────────────────────────────────────────────────
 export const metadata: Metadata = {
@@ -66,7 +67,7 @@ export const viewport: Viewport = {
 // ─── Layout ───────────────────────────────────────────────────────────────
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <ThemeProvider>
       {/* Offline banner — fixed top, shows only when offline */}
       <OfflineBanner />
 
@@ -96,6 +97,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           `,
         }}
       />
-    </>
+    </ThemeProvider>
   );
 }
