@@ -10,9 +10,21 @@
  * 4. Insert subscription directly to Supabase (no API route needed)
  * 5. Persist subscription state in localStorage
  * 6. Unsubscribe: call PushManager.unsubscribe() + delete from Supabase
+ *
+ * Fix log:
+ * - mosque_id null race-condition: subscribe/unsubscribe now read mosque_id
+ *   from a ref that is always in sync, so stale closures can no longer
+ *   silently abort the flow.
+ * - Notification.requestPermission() returning "default" (user dismissed
+ *   without answering) is now surfaced as a distinct branch with a
+ *   retry-friendly path back to "idle".
+ * - iOS Safari: PushManager / applicationServerKey subscribe errors are
+ *   caught and reported instead of silently failing.
+ * - hydration: check existing subscription via PushManager (most reliable),
+ *   fallback to localStorage for cache invalidation.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
@@ -39,12 +51,25 @@ async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
   }
 }
 
-export type PushStatus = "idle" | "loading" | "subscribed" | "denied" | "error" | "unsupported";
+export type PushStatus =
+  | "idle"
+  | "loading"
+  | "subscribed"
+  | "denied"
+  | "error"
+  | "unsupported";
 
 export function usePushNotification(mosque_id: string | null | undefined) {
   const [status, setStatus] = useState<PushStatus>("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [hydrated, setHydrated] = useState(false);
+
+  // Keep a ref always in sync so subscribe/unsubscribe callbacks never
+  // capture a stale closure value of mosque_id.
+  const mosque_id_ref = useRef(mosque_id);
+  useEffect(() => {
+    mosque_id_ref.current = mosque_id;
+  }, [mosque_id]);
 
   const isSupported =
     typeof window !== "undefined" &&
@@ -52,20 +77,18 @@ export function usePushNotification(mosque_id: string | null | undefined) {
     "PushManager" in window &&
     "Notification" in window;
 
-  // ── Hydrate from localStorage & PushManager ─────────────────────────────
+  // ── Hydrate from PushManager (most reliable) ──────────────────────────
   useEffect(() => {
     if (!isSupported || !mosque_id) return;
 
     const hydrate = async () => {
       try {
-        // Check notification permission first
         if (Notification.permission === "denied") {
           setStatus("denied");
           setHydrated(true);
           return;
         }
 
-        // Get Service Worker registration
         const reg = await getRegistration();
         if (!reg) {
           console.warn("[push] Service Worker not ready during hydration");
@@ -73,20 +96,20 @@ export function usePushNotification(mosque_id: string | null | undefined) {
           return;
         }
 
-        // Check if already subscribed in PushManager (most reliable source)
+        // Check PushManager directly — most reliable source of truth
         const existing = await reg.pushManager.getSubscription();
         if (existing) {
           console.log("[push] Found existing subscription in PushManager");
           setStatus("subscribed");
-          // Update localStorage to match
+          // Keep localStorage in sync
           localStorage.setItem(STORAGE_KEY, mosque_id);
           setHydrated(true);
           return;
         }
 
-        // No active subscription
-        setStatus("idle");
+        // No active subscription — clear stale localStorage
         localStorage.removeItem(STORAGE_KEY);
+        setStatus("idle");
         setHydrated(true);
       } catch (err) {
         console.error("[push] Hydration error:", err);
@@ -100,45 +123,67 @@ export function usePushNotification(mosque_id: string | null | undefined) {
 
   // ── Subscribe ─────────────────────────────────────────────────────────
   const subscribe = useCallback(async () => {
-    if (!isSupported) { setStatus("unsupported"); return; }
-    if (!mosque_id) {
-      console.error("[push] mosque_id is missing");
-      setErrorMsg("Masjid ID tidak ditemukan");
+    if (!isSupported) {
+      setStatus("unsupported");
       return;
     }
+
+    // Always read from ref so we never use a stale closure value.
+    const id = mosque_id_ref.current;
+    if (!id) {
+      console.error("[push] mosque_id is missing — cannot subscribe");
+      setErrorMsg("Data masjid belum siap. Coba lagi sebentar.");
+      setStatus("error");
+      return;
+    }
+
     if (!VAPID_PUBLIC_KEY) {
       console.error("[push] VAPID public key not configured");
       setStatus("error");
-      setErrorMsg("VAPID key tidak dikonfigurasi");
+      setErrorMsg("Konfigurasi server notifikasi belum lengkap.");
       return;
     }
 
     setStatus("loading");
     setErrorMsg("");
 
+    // 1. Request permission — on mobile the dialog may not appear if already
+    //    dismissed before. Safari on iOS requires a user-gesture context.
+    let permission: NotificationPermission;
     try {
-      // 1. Request permission
-      const permission = await Notification.requestPermission();
-      if (permission === "denied") {
-        setStatus("denied");
-        setErrorMsg("Izin notifikasi ditolak");
-        return;
-      }
-      if (permission !== "granted") {
-        setStatus("idle");
-        setErrorMsg("Izin notifikasi tidak diberikan");
-        return;
-      }
+      permission = await Notification.requestPermission();
+    } catch (err) {
+      // Some browsers (old Safari) throw if called outside a user gesture.
+      console.error("[push] requestPermission threw:", err);
+      setErrorMsg("Izin notifikasi gagal. Pastikan Anda menekan tombol ini secara langsung.");
+      setStatus("error");
+      return;
+    }
 
-      // 2. Get SW registration
-      const reg = await getRegistration();
-      if (!reg) {
-        console.error("[push] Service Worker not ready");
-        setErrorMsg("Service Worker tidak aktif");
-        setStatus("error");
-        return;
-      }
+    if (permission === "denied") {
+      setStatus("denied");
+      setErrorMsg("Izin notifikasi ditolak");
+      return;
+    }
 
+    if (permission !== "granted") {
+      // User dismissed the prompt without choosing — stay idle so they can retry.
+      console.warn("[push] Permission not granted (dismissed or default):", permission);
+      setErrorMsg("Izin notifikasi belum diberikan. Ketuk tombol lagi dan pilih 'Izinkan'.");
+      setStatus("idle");
+      return;
+    }
+
+    // 2. Get SW registration
+    const reg = await getRegistration();
+    if (!reg) {
+      console.error("[push] Service Worker not ready");
+      setErrorMsg("Service Worker tidak aktif. Muat ulang halaman dan coba lagi.");
+      setStatus("error");
+      return;
+    }
+
+    try {
       // 3. Subscribe via PushManager
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -146,12 +191,12 @@ export function usePushNotification(mosque_id: string | null | undefined) {
       });
 
       const subJson = sub.toJSON();
-      console.log("[push] PushManager subscribed, mosque_id:", mosque_id);
+      console.log("[push] PushManager subscribed, mosque_id:", id);
 
-      // 4. Save to Supabase from browser (anon key, RLS allows insert)
+      // 4. Save directly to Supabase from browser (anon key, RLS allows insert)
       const { error } = await supabase.from("push_subscriptions").upsert(
         {
-          mosque_id,
+          mosque_id: id,
           endpoint: subJson.endpoint ?? "",
           p256dh: subJson.keys?.p256dh ?? "",
           auth: subJson.keys?.auth ?? "",
@@ -162,8 +207,7 @@ export function usePushNotification(mosque_id: string | null | undefined) {
 
       if (error) {
         console.error("[push] Supabase insert error:", error.message, error.code, error.details);
-        setErrorMsg(`Database error: ${error.message}`);
-        // Still unsubscribe from browser if DB fails
+        setErrorMsg(`Gagal menyimpan: ${error.message} (${error.code})`);
         try {
           await sub.unsubscribe();
         } catch (e) {
@@ -173,22 +217,24 @@ export function usePushNotification(mosque_id: string | null | undefined) {
         return;
       }
 
-      // 5. Persist in localStorage
-      localStorage.setItem(STORAGE_KEY, mosque_id);
+      // 5. Persist and update state
+      localStorage.setItem(STORAGE_KEY, id);
       setStatus("subscribed");
       setErrorMsg("");
-      console.log("[push] Subscribed successfully");
+      console.log("[push] Subscribed successfully for mosque_id:", id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[push] Subscribe error:", msg);
       setErrorMsg(`Error: ${msg}`);
       setStatus("error");
     }
-  }, [isSupported, mosque_id]);
+  }, [isSupported]); // mosque_id intentionally omitted — read from ref
 
   // ── Unsubscribe ───────────────────────────────────────────────────────
   const unsubscribe = useCallback(async () => {
-    if (!mosque_id) return;
+    const id = mosque_id_ref.current;
+    if (!id) return;
+
     setStatus("loading");
 
     try {
@@ -196,11 +242,10 @@ export function usePushNotification(mosque_id: string | null | undefined) {
       if (reg) {
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
-          // Delete from Supabase first
           const { error } = await supabase
             .from("push_subscriptions")
             .delete()
-            .eq("mosque_id", mosque_id)
+            .eq("mosque_id", id)
             .eq("endpoint", sub.endpoint);
 
           if (error) {
@@ -208,7 +253,6 @@ export function usePushNotification(mosque_id: string | null | undefined) {
             // Still try to unsubscribe from browser even if DB fails
           }
 
-          // Unsubscribe from PushManager
           try {
             await sub.unsubscribe();
           } catch (e) {
@@ -225,7 +269,7 @@ export function usePushNotification(mosque_id: string | null | undefined) {
       setStatus("error");
       setErrorMsg("Gagal menonaktifkan notifikasi");
     }
-  }, [mosque_id]);
+  }, []); // mosque_id intentionally omitted — read from ref
 
   return {
     isSupported,
