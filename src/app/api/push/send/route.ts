@@ -16,6 +16,10 @@ const DEFAULT_VAPID_PUBLIC_KEY  = "BMGo_iix-OGUlFc9Fdk2GEMIjuVW9rXpBVozyO0M9gMbF
 const DEFAULT_VAPID_PRIVATE_KEY = "v-dI6MdZIVMKdmsFdB4OOSWOECPTmeD-ZPCDeVz4Xrw";
 const DEFAULT_VAPID_SUBJECT     = "mailto:admin@smartmasjid.id";
 
+const DEFAULT_SUPABASE_URL = "https://ndwzafvikiosrdhbhxbk.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kd3phZnZpa2lvc3JkaGJoeGJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTE2MzQsImV4cCI6MjA5NTI4NzYzNH0.wJbxqBsvzuaGJYGdeserdg4hFUKNZAYGHigdH7ph5Jc";
+const DEFAULT_SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kd3phZnZpa2lvc3JkaGJoeGJrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTcxMTYzNCwiZXhwIjoyMDk1Mjg3NjM0fQ.sfrc7go_J5RxKq8Tz4k8Zzag0Hp489q2ISjTFFuK52g";
+
 function getVapidKeys() {
   const publicKey  = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY || DEFAULT_VAPID_PRIVATE_KEY;
@@ -24,10 +28,10 @@ function getVapidKeys() {
 }
 
 function getClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey    = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const key = serviceKey ?? anonKey;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || DEFAULT_SUPABASE_SERVICE_KEY;
+  const anonKey    = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+  const key = serviceKey || anonKey;
   if (!url || !key) throw new Error("Supabase env vars missing");
   return createClient(url, key, {
     global: {
