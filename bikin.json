@@ -1,0 +1,206 @@
+{
+  "format": "kiro-session-export-v1",
+  "metadata": {
+    "session_id": "e5ae81a3-88ec-4127-9af3-21ec02508fdf",
+    "cwd": "C:\\Users\\thors\\Documents\\ALFA\\smartmasjid\\smartmasjid",
+    "created_at": "2026-07-21T18:15:44.122402600Z",
+    "updated_at": "2026-07-21T18:16:16.945615400Z",
+    "title": "chat save",
+    "session_created_reason": "subagent",
+    "session_state": {
+      "version": "v1",
+      "conversation_metadata": {
+        "user_turn_metadatas": [
+          {
+            "loop_id": {
+              "agent_id": {
+                "name": "kiro_default",
+                "parent_id": null,
+                "rand": null
+              },
+              "rand": 2176393313
+            },
+            "result": {
+              "Ok": {
+                "id": "868445c7-e59b-4879-9f80-213e701cf4a2",
+                "role": "assistant",
+                "content": [
+                  {
+                    "kind": "text",
+                    "data": "`/chat save` requires a file path. Usage:\n\n```\n/chat save <path>\n```\n\nFor example:\n```\n/chat save smartmasjid-session.json\n```\n\nWould you like me to note a specific path to save to?"
+                  }
+                ],
+                "meta": {
+                  "timestamp": 1784657776
+                }
+              }
+            },
+            "message_ids": [
+              "c5e50bb8-a7b0-4b32-af42-2ea7d57e0d58",
+              "022a0c23-7343-4b70-b15d-71cda5967a86",
+              "0f00a59c-f952-4847-b92a-be2c59f0ea4e",
+              "3ec9bb38-bca9-4b19-8286-5ad5815a366c"
+            ],
+            "total_request_count": 2,
+            "number_of_cycles": 1,
+            "builtin_tool_uses": 1,
+            "turn_duration": {
+              "secs": 7,
+              "nanos": 450647700
+            },
+            "end_reason": "UserTurnEnd",
+            "end_timestamp": "2026-07-21T18:16:16.937489300Z",
+            "input_token_count": 0,
+            "output_token_count": 0,
+            "context_usage_percentage": 1.8857,
+            "metering_usage": [
+              {
+                "value": 0.05523050447761194,
+                "unit": "credit",
+                "unitPlural": "credits"
+              },
+              {
+                "value": 0.06585652072968491,
+                "unit": "credit",
+                "unitPlural": "credits"
+              }
+            ],
+            "user_prompt_length": 9
+          }
+        ],
+        "user_turn_start_request": null,
+        "last_request": null
+      },
+      "rts_model_state": {
+        "conversation_id": "e5ae81a3-88ec-4127-9af3-21ec02508fdf",
+        "model_info": {
+          "model_id": "auto",
+          "context_window_tokens": 200000
+        },
+        "context_usage_percentage": 1.8857
+      },
+      "permissions": {
+        "filesystem": {
+          "allowed_read_paths": [
+            "C:\\Users\\thors\\Documents\\ALFA\\smartmasjid\\smartmasjid"
+          ],
+          "allowed_write_paths": [],
+          "denied_read_paths": [],
+          "denied_write_paths": []
+        },
+        "trusted_tools": [],
+        "denied_tools": [],
+        "allowed_commands": []
+      },
+      "agent_name": "kiro_default",
+      "goal": null
+    }
+  },
+  "log_entries": [
+    {
+      "version": "v1",
+      "kind": "Prompt",
+      "data": {
+        "message_id": "c5e50bb8-a7b0-4b32-af42-2ea7d57e0d58",
+        "content": [
+          {
+            "kind": "text",
+            "data": "chat save"
+          }
+        ],
+        "meta": {
+          "timestamp": 1784657769
+        }
+      }
+    },
+    {
+      "version": "v1",
+      "kind": "AssistantMessage",
+      "data": {
+        "message_id": "022a0c23-7343-4b70-b15d-71cda5967a86",
+        "content": [
+          {
+            "kind": "text",
+            "data": ""
+          },
+          {
+            "kind": "toolUse",
+            "data": {
+              "toolUseId": "tooluse_2rY6bn0lJJmtF3wa3ECopu",
+              "name": "introspect",
+              "input": {
+                "__tool_use_purpose": "Looking up how to use the chat save command",
+                "query": "chat save command"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "version": "v1",
+      "kind": "ToolResults",
+      "data": {
+        "message_id": "0f00a59c-f952-4847-b92a-be2c59f0ea4e",
+        "content": [
+          {
+            "kind": "toolResult",
+            "data": {
+              "toolUseId": "tooluse_2rY6bn0lJJmtF3wa3ECopu",
+              "content": [
+                {
+                  "kind": "json",
+                  "data": {
+                    "documentation": "\n\n--- Documentation for: chat save command ---\nThe following documentation is provided inline. DO NOT attempt to read files - all content is below.\n\n\n\n--- Document 1 ---\n--- doc_meta: validated: 2026-04-09 commit: 4ae084db status: validated testable_headless: false category: slash_command title: /chat save description: Save current conversation to file for later resumption keywords: [chat, save, export, persist, session] related: [chat-load, chat-new] --- # /chat save Save current conversation to file for later resumption. ## Overview The `/chat save` command exports the current conversation state to a JSON file. Conversations are automatically saved to the database per-directory, but this command allows explicit file exports for backup, sharing, or custom storage. ## Usage ``` /chat save <path> /chat save <path> --force ``` ## Parameters | Parameter | Required | Description | |-----------|----------|-------------| | `path` | Yes | File path where conversation will be saved | | `--force`, `-f` | No | Overwrite existing file without prompting | ## How It Works Exports current conversation state as `kiro-session-export-v1` JSON including: - Session metadata (session ID, working directory, timestamps, title) - Complete log entries (message history) File can be loaded later with `/chat load` to restore the conversation. ## Examples ### Example 1: Save to File ``` /chat save my-session.json ``` **Output**: ``` Saved session to my-session.json ``` ### Example 2: Save Without Extension If no extension is provided, `.json` is automatically added: ``` /chat save my-session ``` Saves to `my-session.json`. ### Example 3: Overwrite Existing File ``` /chat save backup.json --force ``` ### Example 4: Save with Path ``` /chat save ~/backups/important-conversation.json ``` ## Troubleshooting ### Issue: File Already Exists **Symptom**: Error \"File already exists\" **Cause**: File at path already exists and --force not used **Solution**: Use `--force` flag or choose different path ### Issue: Permission Denied **Symptom**: \"Failed to write\" error **Cause**: No write permission for path **Solution**: Check directory permissions or use different path ### Issue: Invalid Path **Symptom**: Export fails **Cause**: Parent directory doesn't exist **Solution**: Create parent directories first or use existing path ## Related Features - [/chat load](chat-load.md) - Load saved conversation - [/chat new](chat-new.md) - Start fresh conversation - [kiro-cli chat](../commands/chat.md) - CLI session management ## Technical Details **File Format**: `kiro-session-export-v1` JSON envelope **Structure**: ```json { \"format\": \"kiro-session-export-v1\", \"metadata\": { \"session_id\": \"...\", \"cwd\": \"/path/to/dir\", \"created_at\": \"2026-01-01T00:00:00Z\", \"updated_at\": \"2026-01-01T00:00:00Z\", \"title\": \"Session Title\", \"session_state\": \"...\" }, \"log_entries\": [...] } ``` **State Preserved**: - Session ID - Working directory (cwd) - Created/updated timestamps - Session title - Log entries (complete message history) **State Not Preserved**: - Tool manager instance (recreated on load) - MCP connections (reconnected on load) - Agent configuration (uses current session's config) **Auto-Extension**: `.json` extension added automatically if no extension provided.\n\n--- Document 2 ---\n--- doc_meta: validated: 2026-05-22 commit: 773c796e6 status: validated testable_headless: false category: feature title: Session Management description: Automatic session saving, resumption, and file-based storage keywords: [session, save, load, resume, auto-save, storage, history, conversation, KIRO_SESSION_ID, environment] related: [chat-save, chat-load, chat, hooks] --- # Session Management Automatic session saving, resumption, and file-based storage. ## Overview Kiro CLI automatically saves all chat sessions on every conversation turn. Sessions are stored per-directory as files. Resume from any previous session or export to portable files. ## Auto-Save **Automatic**: Every conversation turn saved **Scope**: Per-directory (each project has own sessions) **Storage**: `~/.kiro/sessions/cli/` - `{session_id}.json` - metadata (cwd, timestamps, session state) - `{session_id}.jsonl` - append-only conversation log - `{session_id}.lock` - lock file (exists only when session is active) **Session ID**: UUID for each session ## Environment Variable Kiro sets the `KIRO_SESSION_ID` environment variable when a session starts. All child processes inherit this value: - Shell commands executed by the agent - Hook scripts - MCP servers - AWS CLI calls This allows child processes to detect they're running inside a Kiro session and correlate activity back to a specific session for logging or telemetry. ```bash # In a hook script or shell command echo \"Running in Kiro session: $KIRO_SESSION_ID\" ``` The variable is updated when: - A new chat session starts - `/chat new` creates a new session - `/chat load` loads a saved session ## Managing Sessions ### From Command Line ```bash # Resume most recent session kiro-cli chat --resume # Interactive picker kiro-cli chat --resume-picker # Resume specific session by ID kiro-cli chat --resume-id f2946a26-3735-4b08-8d05-c928010302d5 # List all sessions kiro-cli chat --list-sessions # Delete session kiro-cli chat --delete-session <SESSION_ID> ``` ### From Chat ```bash # Save to file /chat save <path> # Load from file /chat load <path> # Start fresh session /chat new ``` **Note**: `.json` extension optional when loading. ## Session Storage **Files**: Sessions auto-saved per-directory to `~/.kiro/sessions/cli/` **Export**: Manual export via `/chat save` **Session ID**: UUID format (e.g., `f2946a26-3735-4b08-8d05-c928010302d5`) ## Examples ### Example 1: Resume Last Session ```bash kiro-cli chat --resume ``` Continues most recent conversation, restoring the model that was active when the session was saved. ### Example 2: Pick Session ```bash kiro-cli chat --resume-picker ``` Shows list of sessions to choose from. Displays session title, age, and message count. ### Example 3: Export to File ``` /chat save backup.json ``` Exports current session to file. ### Example 4: Save and Load Workflow ```bash # Save current session /chat save ./backup.json # Later, load it back /chat load ./backup.json ``` ### Example 5: Share Session Across Machines ```bash # On machine A: export session /chat save ~/shared/my-session.json # On machine B: import session /chat load ~/shared/my-session.json ``` The loaded session gets a new UUID but preserves conversation history. ## FAQ ### How do I name or rename a session? Sessions are identified by auto-generated UUIDs and auto-titled based on conversation content. You cannot manually rename sessions. To organize sessions: - Use `/chat save meaningful-name.json` to export with a descriptive filename - Use `--resume-picker` to see session titles when selecting ### How do I search past conversations by content? Content search is not built-in. Workarounds: - Sessions are stored as `.jsonl` files in `~/.kiro/sessions/cli/` - Use grep to search: `grep -r \"search term\" ~/.kiro/sessions/cli/*.jsonl` - Export important sessions with `/chat save` to searchable locations ### How do I share context across sessions? Sessions are independent. To share context: - Export relevant context to a file and reference it in new sessions - Use agent `resources` to load common context files automatically - Use `/chat save` and `/chat load` to continue the same conversation ### How do I centralize conversations across workspaces? Sessions are per-directory by design. To work around this: - Export sessions with `/chat save` to a central location - Load them with `/chat load` from any directory - Note: The loaded session runs in the current directory context ## Troubleshooting ### Issue: No Sessions to Resume **Symptom**: \"No saved chat sessions\" **Cause**: No sessions in current directory **Solution**: Sessions are per-directory. Navigate to correct directory or use `/chat load` with a path. ### Issue: Session Shows Wrong Directory **Symptom**: Resumed session references files from different directory **Cause**: Session was created in a different directory **Solution**: Sessions are tied to their original directory. Start a new session or navigate to the original directory. ## Prompt History Prompt history (Up/Down arrow navigation) is scoped per-session by default. Each session stores its own history file: - `~/.kiro/sessions/cli/{session_id}.history` When you start a new session, the history starts fresh. When you resume an existing session, its prompt history is restored. ### Configuration Use `/settings` → `history` to switch between: | Mode | Description | |------|-------------| | **session** (default) | Each session has its own prompt history | | **global** | All sessions share one history file (`~/.kiro/.cli_bash_history`) | **Note**: Switching between history modes or starting a new session does not carry over history from the previous context. Each session starts with its own history (empty if new, or restored from its history file if resuming). ## Related - [/chat save](../slash-commands/chat-save.md) - Save command - [/chat load](../slash-commands/chat-load.md) - Load command - [/chat new](../slash-commands/chat-new.md) - Start new session - [kiro-cli chat](../commands/chat.md) - CLI options ## Limitations - Sessions stored per-directory (by design for project isolation) - Session IDs are UUIDs (auto-titled based on content) - No built-in content search (use grep on session files) - No cloud sync (use `/chat save` to export for manual sync) - No cross-session context sharing (sessions are independent) ## Technical Details **Storage**: File-based in `~/.kiro/sessions/cli/` **Scope**: Sessions keyed by directory path **Auto-Save**: After every conversation turn **Model Preservation**: When resuming via `--resume`, the model active when the session was saved is restored. This includes models switched mid-session with `/model`. The `--model` CLI flag overrides the saved model.\n\n--- Document 3 ---\n--- doc_meta: validated: 2026-04-09 commit: 4ae084db status: validated testable_headless: false category: slash_command title: /chat load description: Load previously saved conversation from file to resume session keywords: [chat, load, import, restore, resume, session, zip, json] related: [chat-save, chat-new] --- # /chat load Load previously saved conversation from file to resume session. ## Overview The `/chat load` command imports a conversation from a saved session file. Supports multiple file formats including the native Kiro export format, zip archives, and legacy V1 sessions. ## Usage ``` /chat load <path> ``` ## Parameters | Parameter | Required | Description | |-----------|----------|-------------| | `path` | Yes | Path to saved session file (.json or .zip) | ## Supported Formats | Format | Description | |--------|-------------| | Kiro | `kiro-session-export-v1` JSON (created by `/chat save`) | | Zip | Archive containing `session_metadata.json` + `conversation_log.jsonl` | | Legacy | V1 `ConversationState` JSON from older CLI versions | ## How It Works 1. Reads the file and auto-detects format 2. Extracts session metadata and conversation log 3. Creates a new session with a fresh UUID 4. Sets `imported_from` field to track origin The loaded session uses your current: - Agent configuration - Model configuration - MCP connections - Hooks ## Examples ### Example 1: Load from JSON File ``` /chat load my-session.json ``` **Output**: ``` Loaded session from /home/user/my-session.json ``` ### Example 2: Load from Zip Archive ``` /chat load backup.zip ``` ### Example 3: Load with Extension Fallback ``` /chat load backup ``` Tries `backup` first, then `backup.zip`, then `backup.json` if not found. ### Example 4: Load from Absolute Path ``` /chat load ~/backups/important-conversation.json ``` ## Troubleshooting ### Issue: File Not Found **Symptom**: \"Failed to read\" error **Cause**: File doesn't exist at path **Solution**: Check path. Command tries `.zip` then `.json` extensions automatically. ### Issue: Unrecognized Format **Symptom**: \"Unrecognized session file format\" error **Cause**: File is not a valid session export **Solution**: Ensure file was created with `/chat save` or is a valid legacy export. ### Issue: Invalid Zip Archive **Symptom**: \"File has .zip extension but is not a valid zip archive\" **Cause**: Corrupted or invalid zip file **Solution**: Re-export the session or use JSON format. ## Related Features - [/chat save](chat-save.md) - Save conversation to file - [/chat new](chat-new.md) - Start a new conversation - [kiro-cli chat --resume](../commands/chat.md) - Resume last conversation ## Technical Details **Extension Handling**: If path has no extension and file not found, tries `.zip` first, then `.json`. **Session ID**: Loaded sessions get a new UUID. The original path is stored in `imported_from`. **Format Detection**: Uses file extension for `.zip`, then probes JSON structure for other formats.\n\n--- Document 4 ---\n--- doc_meta: validated: 2026-04-24 commit: 22dc5f71 status: validated testable_headless: false category: slash_command description: Exit the chat session and return to terminal keywords: [quit, exit, close, leave] related: [chat-save] --- Exit the chat session and return to terminal. ## Overview The `/quit` command exits the current chat session. You can also use `/exit` as an alias. ## Usage ``` /quit ``` Or: ``` /exit ``` ## Behavior 1. Auto-saves conversation to database (per-directory) 2. Closes chat session 3. Returns to terminal ## Examples ### Example 1: Exit Session ``` /quit ``` Session ends, returns to terminal. ### Example 2: Using Alias ``` /exit ``` Same behavior as `/quit`. ## Auto-Save Conversations automatically saved to database before exit. Resume with: ```bash kiro-cli chat --resume ``` Or: ``` /chat resume ``` ## Troubleshooting ### Issue: Want to Save to File **Symptom**: Need explicit file save **Cause**: Auto-save only to database ## Related Features - [/chat save](chat-save.md) - Save to file - [kiro-cli chat --resume](../commands/chat.md) - Resume conversation ## Technical Details **Auto-Save**: Conversation saved to database with current directory as key **Keyboard**: Ctrl+C also exits (with confirmation if in middle of response)\n\n--- Document 5 ---\n--- doc_meta: validated: 2026-03-22 commit: b8a43f49 status: validated testable_headless: false category: slash_command title: /chat new description: Start a fresh conversation without restarting the CLI keywords: [chat, new, fresh, conversation, reset, start over] related: [chat-load, chat-save, clear] --- # /chat new Start a fresh conversation without restarting the CLI. ## Overview The `/chat new` command creates a brand new conversation session, clearing all messages and starting fresh. The previous session is preserved and can be resumed later with `/chat`. Creates a new ACP session and terminates the old one. ## Usage ### Start a fresh conversation ``` /chat new ``` ### Start with an initial prompt ``` /chat new <prompt> ``` Immediately sends the prompt to the new conversation after creation. ## Examples ### Basic usage ``` > /chat new ✔ New conversation started. Use /chat to return to previous sessions. ``` ### With an initial prompt ``` > /chat new explain how async works in Rust ``` This creates a new conversation and immediately sends \"explain how async works in Rust\" as the first message. ## How It Works 1. The current session is saved automatically 2. A new session is created with a fresh conversation ID 3. All messages are cleared from the display 4. Model and agent settings are preserved 5. MCP servers remain available (creates new server instances) ## Differences from /clear | Feature | `/chat new` | `/clear` | |---------|-------------|----------| | Creates new session ID | Yes | No | | Previous session resumable via `/chat` | Yes | No | | Clears conversation history | Yes | Yes | | Resets context window | Yes | Yes | | Preserves model selection | Yes | Yes | | Preserves agent selection | Yes | Yes | ## Related - `/chat` — List and load previous sessions - `/chat save` — Save conversation to file - `/chat load` — Load conversation from file - `/clear` — Clear conversation without creating new session ## Limitations - MCP servers are re-initialized in the new session (brief startup delay)\n\n--- CRITICAL INSTRUCTION ---\nYOU MUST ONLY provide information that is explicitly documented in the sections above. If specific details about any tool, feature, or command are not documented, you MUST clearly state that the information is not available in the documentation. DO NOT generate plausible-sounding information or make assumptions about undocumented features.\n\n",
+                    "query_context": "chat save command"
+                  }
+                }
+              ],
+              "status": "success"
+            }
+          }
+        ],
+        "results": {
+          "tooluse_2rY6bn0lJJmtF3wa3ECopu": {
+            "tool": {
+              "tool_use_purpose": "Looking up how to use the chat save command",
+              "kind": {
+                "BuiltIn": {
+                  "Introspect": {
+                    "query": "chat save command",
+                    "doc_path": null
+                  }
+                }
+              }
+            },
+            "result": {
+              "Success": {
+                "items": [
+                  {
+                    "Json": {
+                      "documentation": "\n\n--- Documentation for: chat save command ---\nThe following documentation is provided inline. DO NOT attempt to read files - all content is below.\n\n\n\n--- Document 1 ---\n--- doc_meta: validated: 2026-04-09 commit: 4ae084db status: validated testable_headless: false category: slash_command title: /chat save description: Save current conversation to file for later resumption keywords: [chat, save, export, persist, session] related: [chat-load, chat-new] --- # /chat save Save current conversation to file for later resumption. ## Overview The `/chat save` command exports the current conversation state to a JSON file. Conversations are automatically saved to the database per-directory, but this command allows explicit file exports for backup, sharing, or custom storage. ## Usage ``` /chat save <path> /chat save <path> --force ``` ## Parameters | Parameter | Required | Description | |-----------|----------|-------------| | `path` | Yes | File path where conversation will be saved | | `--force`, `-f` | No | Overwrite existing file without prompting | ## How It Works Exports current conversation state as `kiro-session-export-v1` JSON including: - Session metadata (session ID, working directory, timestamps, title) - Complete log entries (message history) File can be loaded later with `/chat load` to restore the conversation. ## Examples ### Example 1: Save to File ``` /chat save my-session.json ``` **Output**: ``` Saved session to my-session.json ``` ### Example 2: Save Without Extension If no extension is provided, `.json` is automatically added: ``` /chat save my-session ``` Saves to `my-session.json`. ### Example 3: Overwrite Existing File ``` /chat save backup.json --force ``` ### Example 4: Save with Path ``` /chat save ~/backups/important-conversation.json ``` ## Troubleshooting ### Issue: File Already Exists **Symptom**: Error \"File already exists\" **Cause**: File at path already exists and --force not used **Solution**: Use `--force` flag or choose different path ### Issue: Permission Denied **Symptom**: \"Failed to write\" error **Cause**: No write permission for path **Solution**: Check directory permissions or use different path ### Issue: Invalid Path **Symptom**: Export fails **Cause**: Parent directory doesn't exist **Solution**: Create parent directories first or use existing path ## Related Features - [/chat load](chat-load.md) - Load saved conversation - [/chat new](chat-new.md) - Start fresh conversation - [kiro-cli chat](../commands/chat.md) - CLI session management ## Technical Details **File Format**: `kiro-session-export-v1` JSON envelope **Structure**: ```json { \"format\": \"kiro-session-export-v1\", \"metadata\": { \"session_id\": \"...\", \"cwd\": \"/path/to/dir\", \"created_at\": \"2026-01-01T00:00:00Z\", \"updated_at\": \"2026-01-01T00:00:00Z\", \"title\": \"Session Title\", \"session_state\": \"...\" }, \"log_entries\": [...] } ``` **State Preserved**: - Session ID - Working directory (cwd) - Created/updated timestamps - Session title - Log entries (complete message history) **State Not Preserved**: - Tool manager instance (recreated on load) - MCP connections (reconnected on load) - Agent configuration (uses current session's config) **Auto-Extension**: `.json` extension added automatically if no extension provided.\n\n--- Document 2 ---\n--- doc_meta: validated: 2026-05-22 commit: 773c796e6 status: validated testable_headless: false category: feature title: Session Management description: Automatic session saving, resumption, and file-based storage keywords: [session, save, load, resume, auto-save, storage, history, conversation, KIRO_SESSION_ID, environment] related: [chat-save, chat-load, chat, hooks] --- # Session Management Automatic session saving, resumption, and file-based storage. ## Overview Kiro CLI automatically saves all chat sessions on every conversation turn. Sessions are stored per-directory as files. Resume from any previous session or export to portable files. ## Auto-Save **Automatic**: Every conversation turn saved **Scope**: Per-directory (each project has own sessions) **Storage**: `~/.kiro/sessions/cli/` - `{session_id}.json` - metadata (cwd, timestamps, session state) - `{session_id}.jsonl` - append-only conversation log - `{session_id}.lock` - lock file (exists only when session is active) **Session ID**: UUID for each session ## Environment Variable Kiro sets the `KIRO_SESSION_ID` environment variable when a session starts. All child processes inherit this value: - Shell commands executed by the agent - Hook scripts - MCP servers - AWS CLI calls This allows child processes to detect they're running inside a Kiro session and correlate activity back to a specific session for logging or telemetry. ```bash # In a hook script or shell command echo \"Running in Kiro session: $KIRO_SESSION_ID\" ``` The variable is updated when: - A new chat session starts - `/chat new` creates a new session - `/chat load` loads a saved session ## Managing Sessions ### From Command Line ```bash # Resume most recent session kiro-cli chat --resume # Interactive picker kiro-cli chat --resume-picker # Resume specific session by ID kiro-cli chat --resume-id f2946a26-3735-4b08-8d05-c928010302d5 # List all sessions kiro-cli chat --list-sessions # Delete session kiro-cli chat --delete-session <SESSION_ID> ``` ### From Chat ```bash # Save to file /chat save <path> # Load from file /chat load <path> # Start fresh session /chat new ``` **Note**: `.json` extension optional when loading. ## Session Storage **Files**: Sessions auto-saved per-directory to `~/.kiro/sessions/cli/` **Export**: Manual export via `/chat save` **Session ID**: UUID format (e.g., `f2946a26-3735-4b08-8d05-c928010302d5`) ## Examples ### Example 1: Resume Last Session ```bash kiro-cli chat --resume ``` Continues most recent conversation, restoring the model that was active when the session was saved. ### Example 2: Pick Session ```bash kiro-cli chat --resume-picker ``` Shows list of sessions to choose from. Displays session title, age, and message count. ### Example 3: Export to File ``` /chat save backup.json ``` Exports current session to file. ### Example 4: Save and Load Workflow ```bash # Save current session /chat save ./backup.json # Later, load it back /chat load ./backup.json ``` ### Example 5: Share Session Across Machines ```bash # On machine A: export session /chat save ~/shared/my-session.json # On machine B: import session /chat load ~/shared/my-session.json ``` The loaded session gets a new UUID but preserves conversation history. ## FAQ ### How do I name or rename a session? Sessions are identified by auto-generated UUIDs and auto-titled based on conversation content. You cannot manually rename sessions. To organize sessions: - Use `/chat save meaningful-name.json` to export with a descriptive filename - Use `--resume-picker` to see session titles when selecting ### How do I search past conversations by content? Content search is not built-in. Workarounds: - Sessions are stored as `.jsonl` files in `~/.kiro/sessions/cli/` - Use grep to search: `grep -r \"search term\" ~/.kiro/sessions/cli/*.jsonl` - Export important sessions with `/chat save` to searchable locations ### How do I share context across sessions? Sessions are independent. To share context: - Export relevant context to a file and reference it in new sessions - Use agent `resources` to load common context files automatically - Use `/chat save` and `/chat load` to continue the same conversation ### How do I centralize conversations across workspaces? Sessions are per-directory by design. To work around this: - Export sessions with `/chat save` to a central location - Load them with `/chat load` from any directory - Note: The loaded session runs in the current directory context ## Troubleshooting ### Issue: No Sessions to Resume **Symptom**: \"No saved chat sessions\" **Cause**: No sessions in current directory **Solution**: Sessions are per-directory. Navigate to correct directory or use `/chat load` with a path. ### Issue: Session Shows Wrong Directory **Symptom**: Resumed session references files from different directory **Cause**: Session was created in a different directory **Solution**: Sessions are tied to their original directory. Start a new session or navigate to the original directory. ## Prompt History Prompt history (Up/Down arrow navigation) is scoped per-session by default. Each session stores its own history file: - `~/.kiro/sessions/cli/{session_id}.history` When you start a new session, the history starts fresh. When you resume an existing session, its prompt history is restored. ### Configuration Use `/settings` → `history` to switch between: | Mode | Description | |------|-------------| | **session** (default) | Each session has its own prompt history | | **global** | All sessions share one history file (`~/.kiro/.cli_bash_history`) | **Note**: Switching between history modes or starting a new session does not carry over history from the previous context. Each session starts with its own history (empty if new, or restored from its history file if resuming). ## Related - [/chat save](../slash-commands/chat-save.md) - Save command - [/chat load](../slash-commands/chat-load.md) - Load command - [/chat new](../slash-commands/chat-new.md) - Start new session - [kiro-cli chat](../commands/chat.md) - CLI options ## Limitations - Sessions stored per-directory (by design for project isolation) - Session IDs are UUIDs (auto-titled based on content) - No built-in content search (use grep on session files) - No cloud sync (use `/chat save` to export for manual sync) - No cross-session context sharing (sessions are independent) ## Technical Details **Storage**: File-based in `~/.kiro/sessions/cli/` **Scope**: Sessions keyed by directory path **Auto-Save**: After every conversation turn **Model Preservation**: When resuming via `--resume`, the model active when the session was saved is restored. This includes models switched mid-session with `/model`. The `--model` CLI flag overrides the saved model.\n\n--- Document 3 ---\n--- doc_meta: validated: 2026-04-09 commit: 4ae084db status: validated testable_headless: false category: slash_command title: /chat load description: Load previously saved conversation from file to resume session keywords: [chat, load, import, restore, resume, session, zip, json] related: [chat-save, chat-new] --- # /chat load Load previously saved conversation from file to resume session. ## Overview The `/chat load` command imports a conversation from a saved session file. Supports multiple file formats including the native Kiro export format, zip archives, and legacy V1 sessions. ## Usage ``` /chat load <path> ``` ## Parameters | Parameter | Required | Description | |-----------|----------|-------------| | `path` | Yes | Path to saved session file (.json or .zip) | ## Supported Formats | Format | Description | |--------|-------------| | Kiro | `kiro-session-export-v1` JSON (created by `/chat save`) | | Zip | Archive containing `session_metadata.json` + `conversation_log.jsonl` | | Legacy | V1 `ConversationState` JSON from older CLI versions | ## How It Works 1. Reads the file and auto-detects format 2. Extracts session metadata and conversation log 3. Creates a new session with a fresh UUID 4. Sets `imported_from` field to track origin The loaded session uses your current: - Agent configuration - Model configuration - MCP connections - Hooks ## Examples ### Example 1: Load from JSON File ``` /chat load my-session.json ``` **Output**: ``` Loaded session from /home/user/my-session.json ``` ### Example 2: Load from Zip Archive ``` /chat load backup.zip ``` ### Example 3: Load with Extension Fallback ``` /chat load backup ``` Tries `backup` first, then `backup.zip`, then `backup.json` if not found. ### Example 4: Load from Absolute Path ``` /chat load ~/backups/important-conversation.json ``` ## Troubleshooting ### Issue: File Not Found **Symptom**: \"Failed to read\" error **Cause**: File doesn't exist at path **Solution**: Check path. Command tries `.zip` then `.json` extensions automatically. ### Issue: Unrecognized Format **Symptom**: \"Unrecognized session file format\" error **Cause**: File is not a valid session export **Solution**: Ensure file was created with `/chat save` or is a valid legacy export. ### Issue: Invalid Zip Archive **Symptom**: \"File has .zip extension but is not a valid zip archive\" **Cause**: Corrupted or invalid zip file **Solution**: Re-export the session or use JSON format. ## Related Features - [/chat save](chat-save.md) - Save conversation to file - [/chat new](chat-new.md) - Start a new conversation - [kiro-cli chat --resume](../commands/chat.md) - Resume last conversation ## Technical Details **Extension Handling**: If path has no extension and file not found, tries `.zip` first, then `.json`. **Session ID**: Loaded sessions get a new UUID. The original path is stored in `imported_from`. **Format Detection**: Uses file extension for `.zip`, then probes JSON structure for other formats.\n\n--- Document 4 ---\n--- doc_meta: validated: 2026-04-24 commit: 22dc5f71 status: validated testable_headless: false category: slash_command description: Exit the chat session and return to terminal keywords: [quit, exit, close, leave] related: [chat-save] --- Exit the chat session and return to terminal. ## Overview The `/quit` command exits the current chat session. You can also use `/exit` as an alias. ## Usage ``` /quit ``` Or: ``` /exit ``` ## Behavior 1. Auto-saves conversation to database (per-directory) 2. Closes chat session 3. Returns to terminal ## Examples ### Example 1: Exit Session ``` /quit ``` Session ends, returns to terminal. ### Example 2: Using Alias ``` /exit ``` Same behavior as `/quit`. ## Auto-Save Conversations automatically saved to database before exit. Resume with: ```bash kiro-cli chat --resume ``` Or: ``` /chat resume ``` ## Troubleshooting ### Issue: Want to Save to File **Symptom**: Need explicit file save **Cause**: Auto-save only to database ## Related Features - [/chat save](chat-save.md) - Save to file - [kiro-cli chat --resume](../commands/chat.md) - Resume conversation ## Technical Details **Auto-Save**: Conversation saved to database with current directory as key **Keyboard**: Ctrl+C also exits (with confirmation if in middle of response)\n\n--- Document 5 ---\n--- doc_meta: validated: 2026-03-22 commit: b8a43f49 status: validated testable_headless: false category: slash_command title: /chat new description: Start a fresh conversation without restarting the CLI keywords: [chat, new, fresh, conversation, reset, start over] related: [chat-load, chat-save, clear] --- # /chat new Start a fresh conversation without restarting the CLI. ## Overview The `/chat new` command creates a brand new conversation session, clearing all messages and starting fresh. The previous session is preserved and can be resumed later with `/chat`. Creates a new ACP session and terminates the old one. ## Usage ### Start a fresh conversation ``` /chat new ``` ### Start with an initial prompt ``` /chat new <prompt> ``` Immediately sends the prompt to the new conversation after creation. ## Examples ### Basic usage ``` > /chat new ✔ New conversation started. Use /chat to return to previous sessions. ``` ### With an initial prompt ``` > /chat new explain how async works in Rust ``` This creates a new conversation and immediately sends \"explain how async works in Rust\" as the first message. ## How It Works 1. The current session is saved automatically 2. A new session is created with a fresh conversation ID 3. All messages are cleared from the display 4. Model and agent settings are preserved 5. MCP servers remain available (creates new server instances) ## Differences from /clear | Feature | `/chat new` | `/clear` | |---------|-------------|----------| | Creates new session ID | Yes | No | | Previous session resumable via `/chat` | Yes | No | | Clears conversation history | Yes | Yes | | Resets context window | Yes | Yes | | Preserves model selection | Yes | Yes | | Preserves agent selection | Yes | Yes | ## Related - `/chat` — List and load previous sessions - `/chat save` — Save conversation to file - `/chat load` — Load conversation from file - `/clear` — Clear conversation without creating new session ## Limitations - MCP servers are re-initialized in the new session (brief startup delay)\n\n--- CRITICAL INSTRUCTION ---\nYOU MUST ONLY provide information that is explicitly documented in the sections above. If specific details about any tool, feature, or command are not documented, you MUST clearly state that the information is not available in the documentation. DO NOT generate plausible-sounding information or make assumptions about undocumented features.\n\n",
+                      "query_context": "chat save command"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "version": "v1",
+      "kind": "AssistantMessage",
+      "data": {
+        "message_id": "3ec9bb38-bca9-4b19-8286-5ad5815a366c",
+        "content": [
+          {
+            "kind": "text",
+            "data": "`/chat save` requires a file path. Usage:\n\n```\n/chat save <path>\n```\n\nFor example:\n```\n/chat save smartmasjid-session.json\n```\n\nWould you like me to note a specific path to save to?"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -213,13 +213,16 @@ export default function DashboardPage() {
 
       // Kirim push notification ke subscriber masjid
       try {
-        if (accessToken && mosqueId) {
+        if (mosqueId) {
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+          };
+          if (accessToken) {
+            headers["Authorization"] = `Bearer ${accessToken}`;
+          }
           await fetch("/api/push/send", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${accessToken}`,
-            },
+            headers,
             body: JSON.stringify({
               mosque_id: mosqueId,
               title: "📢 Pengumuman Baru",
