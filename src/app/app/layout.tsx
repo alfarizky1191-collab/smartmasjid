@@ -87,7 +87,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js', { scope: '/' })
                   .then(function(reg) {
+                    // Force check for update immediately
+                    reg.update();
+                    // Then check every hour
                     setInterval(function() { reg.update(); }, 60 * 60 * 1000);
+                    // Auto reload when new SW is activated
+                    reg.addEventListener('updatefound', function() {
+                      var newWorker = reg.installing;
+                      if (!newWorker) return;
+                      newWorker.addEventListener('statechange', function() {
+                        if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                          window.location.reload();
+                        }
+                      });
+                    });
                   })
                   .catch(function(err) {
                     console.warn('[SW] Registration failed:', err);
