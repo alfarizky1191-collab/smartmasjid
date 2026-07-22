@@ -10,7 +10,7 @@
  * Cache names are versioned so old caches are cleaned on SW update.
  */
 
-const SW_VERSION = "v3";
+const SW_VERSION = "v4";
 const STATIC_CACHE  = `smartmasjid-static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `smartmasjid-dynamic-${SW_VERSION}`;
 const API_CACHE     = `smartmasjid-api-${SW_VERSION}`;
@@ -175,7 +175,8 @@ async function cacheFirst(request, cacheName) {
   if (cached) return cached;
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    // status 206 (Partial Content) cannot be put into Cache API
+    if (response.ok && response.status !== 206) {
       const cache = await caches.open(cacheName);
       cache.put(request, response.clone());
     }
@@ -188,7 +189,8 @@ async function cacheFirst(request, cacheName) {
 async function networkFirst(request, cacheName, maxAgeSeconds = 300) {
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    // status 206 (Partial Content) cannot be put into Cache API
+    if (response.ok && response.status !== 206) {
       const cache = await caches.open(cacheName);
       cache.put(request, response.clone());
     }
