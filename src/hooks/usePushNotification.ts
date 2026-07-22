@@ -45,14 +45,15 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    // Timeout after 5s to prevent hanging on stuck SW
-    const reg = await Promise.race([
-      navigator.serviceWorker.ready,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("SW timeout")), 5000)
-      ),
-    ]);
-    return reg as ServiceWorkerRegistration;
+    // Try getRegistration first — faster and doesn't hang
+    const existing = await navigator.serviceWorker.getRegistration("/");
+    if (existing) return existing;
+
+    // If no registration found, register fresh
+    const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    // Wait briefly for it to activate
+    await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+    return reg;
   } catch {
     return null;
   }
