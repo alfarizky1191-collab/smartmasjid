@@ -27,7 +27,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  || "BHyce0E7gWFxOqBwoBE2cXahfnlPqJUZuW4XXGcM_hjZOAzrbAhjyGSzxl6w8_vUj0vnTuHQNf9Dg2-aQxv_gtA";
 const STORAGE_KEY = "push_subscribed_mosque";
 
 function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
