@@ -44,6 +44,7 @@ export type PushStatus = "idle" | "loading" | "subscribed" | "denied" | "error" 
 export function usePushNotification(mosque_id: string | null | undefined) {
   const [status, setStatus] = useState<PushStatus>("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [hydrated, setHydrated] = useState(false);
 
   const isSupported =
     typeof window !== "undefined" &&
@@ -51,28 +52,50 @@ export function usePushNotification(mosque_id: string | null | undefined) {
     "PushManager" in window &&
     "Notification" in window;
 
-  // ── Hydrate from localStorage ─────────────────────────────────────────
+  // ── Hydrate from localStorage & PushManager ─────────────────────────────
   useEffect(() => {
     if (!isSupported || !mosque_id) return;
 
-    if (Notification.permission === "denied") {
-      setStatus("denied");
-      return;
-    }
+    const hydrate = async () => {
+      try {
+        // Check notification permission first
+        if (Notification.permission === "denied") {
+          setStatus("denied");
+          setHydrated(true);
+          return;
+        }
 
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === mosque_id) {
-      getRegistration().then(async (reg) => {
-        if (!reg) return;
+        // Get Service Worker registration
+        const reg = await getRegistration();
+        if (!reg) {
+          console.warn("[push] Service Worker not ready during hydration");
+          setHydrated(true);
+          return;
+        }
+
+        // Check if already subscribed in PushManager (most reliable source)
         const existing = await reg.pushManager.getSubscription();
         if (existing) {
+          console.log("[push] Found existing subscription in PushManager");
           setStatus("subscribed");
-        } else {
-          localStorage.removeItem(STORAGE_KEY);
-          setStatus("idle");
+          // Update localStorage to match
+          localStorage.setItem(STORAGE_KEY, mosque_id);
+          setHydrated(true);
+          return;
         }
-      });
-    }
+
+        // No active subscription
+        setStatus("idle");
+        localStorage.removeItem(STORAGE_KEY);
+        setHydrated(true);
+      } catch (err) {
+        console.error("[push] Hydration error:", err);
+        setStatus("idle");
+        setHydrated(true);
+      }
+    };
+
+    hydrate();
   }, [isSupported, mosque_id]);
 
   // ── Subscribe ─────────────────────────────────────────────────────────
@@ -80,32 +103,42 @@ export function usePushNotification(mosque_id: string | null | undefined) {
     if (!isSupported) { setStatus("unsupported"); return; }
     if (!mosque_id) {
       console.error("[push] mosque_id is missing");
+      setErrorMsg("Masjid ID tidak ditemukan");
       return;
     }
     if (!VAPID_PUBLIC_KEY) {
       console.error("[push] VAPID public key not configured");
       setStatus("error");
+      setErrorMsg("VAPID key tidak dikonfigurasi");
       return;
     }
 
     setStatus("loading");
     setErrorMsg("");
 
-    // 1. Request permission
-    const permission = await Notification.requestPermission();
-    if (permission === "denied") { setStatus("denied"); return; }
-    if (permission !== "granted") { setStatus("idle"); return; }
-
-    // 2. Get SW registration
-    const reg = await getRegistration();
-    if (!reg) {
-      console.error("[push] Service Worker not ready");
-      setErrorMsg("Service Worker tidak aktif");
-      setStatus("error");
-      return;
-    }
-
     try {
+      // 1. Request permission
+      const permission = await Notification.requestPermission();
+      if (permission === "denied") {
+        setStatus("denied");
+        setErrorMsg("Izin notifikasi ditolak");
+        return;
+      }
+      if (permission !== "granted") {
+        setStatus("idle");
+        setErrorMsg("Izin notifikasi tidak diberikan");
+        return;
+      }
+
+      // 2. Get SW registration
+      const reg = await getRegistration();
+      if (!reg) {
+        console.error("[push] Service Worker not ready");
+        setErrorMsg("Service Worker tidak aktif");
+        setStatus("error");
+        return;
+      }
+
       // 3. Subscribe via PushManager
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -115,13 +148,13 @@ export function usePushNotification(mosque_id: string | null | undefined) {
       const subJson = sub.toJSON();
       console.log("[push] PushManager subscribed, mosque_id:", mosque_id);
 
-      // 4. Save directly to Supabase from browser (anon key, RLS allows insert)
+      // 4. Save to Supabase from browser (anon key, RLS allows insert)
       const { error } = await supabase.from("push_subscriptions").upsert(
         {
           mosque_id,
-          endpoint: subJson.endpoint,
-          p256dh:   subJson.keys?.p256dh,
-          auth:     subJson.keys?.auth,
+          endpoint: subJson.endpoint ?? "",
+          p256dh: subJson.keys?.p256dh ?? "",
+          auth: subJson.keys?.auth ?? "",
           user_agent: navigator.userAgent,
         },
         { onConflict: "mosque_id,endpoint" }
@@ -129,13 +162,18 @@ export function usePushNotification(mosque_id: string | null | undefined) {
 
       if (error) {
         console.error("[push] Supabase insert error:", error.message, error.code, error.details);
-        setErrorMsg(`DB: ${error.message} (${error.code})`);
-        await sub.unsubscribe();
+        setErrorMsg(`Database error: ${error.message}`);
+        // Still unsubscribe from browser if DB fails
+        try {
+          await sub.unsubscribe();
+        } catch (e) {
+          console.error("[push] Failed to unsubscribe after DB error:", e);
+        }
         setStatus("error");
         return;
       }
 
-      // 5. Persist
+      // 5. Persist in localStorage
       localStorage.setItem(STORAGE_KEY, mosque_id);
       setStatus("subscribed");
       setErrorMsg("");
@@ -153,29 +191,48 @@ export function usePushNotification(mosque_id: string | null | undefined) {
     if (!mosque_id) return;
     setStatus("loading");
 
-    const reg = await getRegistration();
-    if (reg) {
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) {
-        await supabase
-          .from("push_subscriptions")
-          .delete()
-          .eq("mosque_id", mosque_id)
-          .eq("endpoint", sub.endpoint);
+    try {
+      const reg = await getRegistration();
+      if (reg) {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          // Delete from Supabase first
+          const { error } = await supabase
+            .from("push_subscriptions")
+            .delete()
+            .eq("mosque_id", mosque_id)
+            .eq("endpoint", sub.endpoint);
 
-        await sub.unsubscribe().catch(() => {});
+          if (error) {
+            console.warn("[push] Failed to delete from DB:", error.message);
+            // Still try to unsubscribe from browser even if DB fails
+          }
+
+          // Unsubscribe from PushManager
+          try {
+            await sub.unsubscribe();
+          } catch (e) {
+            console.error("[push] PushManager unsubscribe error:", e);
+          }
+        }
       }
-    }
 
-    localStorage.removeItem(STORAGE_KEY);
-    setStatus("idle");
+      localStorage.removeItem(STORAGE_KEY);
+      setStatus("idle");
+      setErrorMsg("");
+    } catch (err) {
+      console.error("[push] Unsubscribe error:", err);
+      setStatus("error");
+      setErrorMsg("Gagal menonaktifkan notifikasi");
+    }
   }, [mosque_id]);
 
   return {
     isSupported,
     isSubscribed: status === "subscribed",
-    isLoading:   status === "loading",
-    isDenied:    status === "denied",
+    isLoading: status === "loading",
+    isDenied: status === "denied",
+    isHydrated: hydrated,
     status,
     errorMsg,
     subscribe,
