@@ -99,8 +99,39 @@ export default function AppHomePage() {
   const [currentPrayer, setCurrentPrayer]     = useState("");
   const [canShowNotifCard, setCanShowNotifCard] = useState(false);
 
-  const audioRef     = useRef<HTMLAudioElement | null>(null);
-  const triggeredRef = useRef<string | null>(null);
+  const audioRef       = useRef<HTMLAudioElement | null>(null);
+  const triggeredRef   = useRef<string | null>(null);
+  const audioCtxRef    = useRef<AudioContext | null>(null);
+
+  // audioUnlocked: true setelah user pernah tap halaman ini.
+  // Di HP (iOS/Android), autoplay audio hanya diizinkan setelah interaksi user.
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+
+  // Unlock audio context saat user pertama kali tap/klik halaman
+  const unlockAudio = useCallback(() => {
+    if (audioUnlocked) return;
+    // Coba resume / buat AudioContext agar browser tahu ada interaksi
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      }
+      if (audioCtxRef.current.state === "suspended") {
+        audioCtxRef.current.resume();
+      }
+    } catch {
+      // AudioContext tidak tersedia — tidak masalah, tetap set unlocked
+    }
+    // Mainkan audio silent untuk "warm up" elemen audio di iOS
+    if (audioRef.current) {
+      audioRef.current.volume = 0;
+      audioRef.current.play().then(() => {
+        audioRef.current!.pause();
+        audioRef.current!.currentTime = 0;
+        audioRef.current!.volume = 1;
+      }).catch(() => {});
+    }
+    setAudioUnlocked(true);
+  }, [audioUnlocked]);
 
   // Deteksi Notification API setelah mount — lebih lax daripada push.isSupported
   useEffect(() => {
@@ -188,9 +219,17 @@ export default function AppHomePage() {
           setShowAdzan(true);
           setCurrentPrayer(p.name);
           setIqomahSecs(mosque?.iqomah_duration ?? 300);
-          const audio = new Audio(p.audio);
-          audioRef.current = audio;
-          audio.play().catch(() => {});
+
+          // Gunakan audioRef yang sudah ada (bukan new Audio) agar
+          // autoplay bekerja di HP setelah user pernah interaksi.
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current.src = p.audio;
+            audioRef.current.volume = 1;
+            audioRef.current.play().catch(() => {});
+          }
+
           setTimeout(() => setShowAdzan(false), 300_000);
           break;
         }
@@ -340,9 +379,30 @@ export default function AppHomePage() {
   return (
     <PageTransition variant="slide-up">
       <PullToRefresh onRefresh={async () => { window.location.reload(); }}>
-    <div className={`min-h-screen transition-colors duration-500 ${showAdzan ? "bg-yellow-950" : ""}`}
+    {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+    <div
+      className={`min-h-screen transition-colors duration-500 ${showAdzan ? "bg-yellow-950" : ""}`}
       style={!showAdzan ? { background: "var(--pwa-bg)" } : undefined}
+      onClick={unlockAudio}
+      onTouchStart={unlockAudio}
     >
+
+      {/* ── Banner Aktifkan Suara Adzan (hilang setelah tap) ──────── */}
+      {!audioUnlocked && (
+        <div
+          className="mx-4 mt-3 mb-1 flex items-center gap-3 bg-amber-500/15 border border-amber-400/40 rounded-2xl px-4 py-3 cursor-pointer"
+          role="button"
+          aria-label="Ketuk untuk aktifkan suara adzan"
+          onClick={unlockAudio}
+        >
+          <span className="text-amber-300 text-xl shrink-0">🔔</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-amber-300 text-xs font-bold leading-snug">Ketuk di mana saja untuk aktifkan suara adzan</p>
+            <p className="text-amber-400/70 text-xs mt-0.5">Diperlukan sekali agar adzan otomatis berbunyi di HP</p>
+          </div>
+          <span className="text-amber-300 text-lg shrink-0">👆</span>
+        </div>
+      )}
 
       {/* ── 1. Header ─────────────────────────────────────────────── */}
       <MobileHeader
