@@ -10,7 +10,7 @@
  * Cache names are versioned so old caches are cleaned on SW update.
  */
 
-const SW_VERSION = "v5";
+const SW_VERSION = "v6";
 const STATIC_CACHE  = `smartmasjid-static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `smartmasjid-dynamic-${SW_VERSION}`;
 const API_CACHE     = `smartmasjid-api-${SW_VERSION}`;
@@ -51,7 +51,23 @@ self.addEventListener("activate", (event) => {
           .map((key) => caches.delete(key))
       )
     ).then(() => self.clients.claim())
+    .then(() => {
+      // Notify all open tabs that SW updated so they can reload
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) =>
+          client.postMessage({ type: "SW_UPDATED", version: SW_VERSION })
+        );
+      });
+    })
   );
+});
+
+// ─── Message handler ─────────────────────────────────────────────────────────
+// Allows pages to trigger skipWaiting (e.g. when user taps "Update tersedia")
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 // ─── Fetch ───────────────────────────────────────────────────────────────────

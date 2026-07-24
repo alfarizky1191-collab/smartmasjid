@@ -87,17 +87,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js', { scope: '/' })
                   .then(function(reg) {
-                    // Force check for update immediately
+                    // Force check for update immediately on load
                     reg.update();
-                    // Then check every hour
-                    setInterval(function() { reg.update(); }, 60 * 60 * 1000);
-                    // Auto reload when new SW is activated
+                    // Then check every 30 minutes
+                    setInterval(function() { reg.update(); }, 30 * 60 * 1000);
+
+                    // When new SW is found, tell it to skip waiting immediately
                     reg.addEventListener('updatefound', function() {
                       var newWorker = reg.installing;
                       if (!newWorker) return;
                       newWorker.addEventListener('statechange', function() {
-                        if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-                          window.location.reload();
+                        if (newWorker.state === 'installed') {
+                          // Tell the new SW to activate immediately (skip waiting)
+                          newWorker.postMessage({ type: 'SKIP_WAITING' });
                         }
                       });
                     });
@@ -105,6 +107,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   .catch(function(err) {
                     console.warn('[SW] Registration failed:', err);
                   });
+
+                // When SW_UPDATED message received (new SW activated), reload page
+                navigator.serviceWorker.addEventListener('message', function(event) {
+                  if (event.data && event.data.type === 'SW_UPDATED') {
+                    console.log('[SW] Updated to', event.data.version, '— reloading...');
+                    window.location.reload();
+                  }
+                });
+
+                // Also reload if controller changes (new SW took control)
+                var refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', function() {
+                  if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                  }
+                });
               });
             }
           `,
