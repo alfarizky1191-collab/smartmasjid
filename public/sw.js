@@ -10,7 +10,7 @@
  * Cache names are versioned so old caches are cleaned on SW update.
  */
 
-const SW_VERSION = "v4";
+const SW_VERSION = "v5";
 const STATIC_CACHE  = `smartmasjid-static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `smartmasjid-dynamic-${SW_VERSION}`;
 const API_CACHE     = `smartmasjid-api-${SW_VERSION}`;
@@ -19,6 +19,8 @@ const API_CACHE     = `smartmasjid-api-${SW_VERSION}`;
 const PRECACHE_URLS = [
   "/app",
   "/manifest.webmanifest",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
   "/icons/icon-192.svg",
   "/icons/icon-512.svg",
   "/icons/icon-maskable.svg",
@@ -129,24 +131,34 @@ self.addEventListener("push", (event) => {
 
   const title   = data.title   || "SmartMasjid";
   const body    = data.body    || "";
-  const icon    = data.icon    || "/icons/icon-192.svg";
-  const badge   = data.badge   || "/icons/icon-192.svg";
-  const tag     = data.tag     || "smartmasjid-notification";
+  const icon    = data.icon    || "/icons/icon-192.png";
+  const badge   = data.badge   || "/icons/icon-192.png";
+  const tag     = data.tag     || `smartmasjid-notif-${Date.now()}`;
   const url     = data.url     || "/app";
   const renotify = data.renotify ?? true;
 
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon,
-      badge,
-      tag,
-      renotify,
-      requireInteraction: false,  // auto-dismiss after a while
-      silent: false,              // play sound + vibrate
-      data: { url },
-      vibrate: [200, 100, 200],
-    })
+    Promise.all([
+      self.registration.showNotification(title, {
+        body,
+        icon,
+        badge,
+        tag,
+        renotify,
+        requireInteraction: false,  // auto-dismiss after a while
+        silent: false,              // play sound + vibrate
+        data: { url },
+        vibrate: [200, 100, 200],
+      }),
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+        for (const client of clientList) {
+          client.postMessage({
+            type: "PUSH_NOTIFICATION_RECEIVED",
+            payload: { title, body, url, tag }
+          });
+        }
+      })
+    ])
   );
 });
 

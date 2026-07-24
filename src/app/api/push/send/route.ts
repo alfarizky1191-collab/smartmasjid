@@ -101,10 +101,10 @@ export async function POST(request: NextRequest) {
     const payload = JSON.stringify({
       title,
       body:     notifBody,
-      icon:     typeof icon === "string" ? icon : "/icons/icon-192.svg",
-      badge:    "/icons/icon-192.svg",
+      icon:     typeof icon === "string" ? icon : "/icons/icon-192.png",
+      badge:    "/icons/icon-192.png",
       url:      typeof url  === "string" ? url  : "/app",
-      tag:      "smartmasjid-notification",
+      tag:      `smartmasjid-announcement-${Date.now()}`,
       renotify: true,
     });
 

@@ -97,9 +97,17 @@ export default function AppHomePage() {
   const [iqomahSecs, setIqomahSecs]           = useState(300);
   const [showAdzan, setShowAdzan]             = useState(false);
   const [currentPrayer, setCurrentPrayer]     = useState("");
+  const [canShowNotifCard, setCanShowNotifCard] = useState(false);
 
   const audioRef     = useRef<HTMLAudioElement | null>(null);
   const triggeredRef = useRef<string | null>(null);
+
+  // Deteksi Notification API setelah mount — lebih lax daripada push.isSupported
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setCanShowNotifCard(true);
+    }
+  }, []);
 
   // Load prayer times helper
   const loadPrayerTimes = useCallback(async (city: string) => {
@@ -405,7 +413,7 @@ export default function AppHomePage() {
       </div>
 
       {/* ── Push Notification Card ───────────────────────────────── */}
-      {push.isSupported && (
+      {canShowNotifCard && (
         <div className="mx-4 sm:mx-5 mb-5 bg-gradient-to-r from-emerald-900/40 via-slate-900/60 to-emerald-900/40 backdrop-blur-md border border-emerald-500/30 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-lg">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 text-xl shrink-0">
@@ -419,19 +427,25 @@ export default function AppHomePage() {
             </div>
           </div>
 
-          <button
-            onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
-            disabled={push.isLoading || push.isDenied}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 shrink-0 shadow-md ${
-              push.isSubscribed
-                ? "bg-slate-800 text-emerald-300 border border-emerald-500/40 hover:bg-slate-700"
-                : push.isDenied
-                ? "bg-slate-800 text-slate-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-amber-500/30 active:scale-95"
-            }`}
-          >
-            {push.isLoading ? "Proses..." : push.isSubscribed ? "Aktif ✓" : push.isDenied ? "Ditolak" : "Aktifkan"}
-          </button>
+          {push.isSupported ? (
+            <button
+              onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
+              disabled={push.isLoading || push.isDenied}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 shrink-0 shadow-md ${
+                push.isSubscribed
+                  ? "bg-slate-800 text-emerald-300 border border-emerald-500/40 hover:bg-slate-700"
+                  : push.isDenied
+                  ? "bg-slate-800 text-slate-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-amber-500/30 active:scale-95"
+              }`}
+            >
+              {push.isLoading ? "Proses..." : push.isSubscribed ? "Aktif ✓" : push.isDenied ? "Ditolak" : "Aktifkan"}
+            </button>
+          ) : (
+            <span className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 shrink-0">
+              Install PWA
+            </span>
+          )}
         </div>
       )}
 
