@@ -1,68 +1,70 @@
-// Server Component — no interactivity; Google Maps link is a plain anchor.
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin, Navigation } from 'lucide-react';
 
 interface LocationCardProps {
-  address: string | null;
-  city: string | null;
-  province: string | null;
-  mosqueName?: string;
+  address?: string | null;
+  city?: string | null;
+  province?: string | null;
+  mosqueName?: string | null;
 }
 
-export default function LocationCard({
-  address,
-  city,
-  province,
-  mosqueName,
-}: LocationCardProps) {
-  const fullAddress = [address, city, province].filter(Boolean).join(", ");
-  if (!fullAddress) return null;
+export default function LocationCard({ address, city, province, mosqueName }: LocationCardProps) {
+  const hasLocation = address || city || province;
+  if (!hasLocation) return null;
 
-  const mapsQuery = encodeURIComponent(
-    [mosqueName, fullAddress].filter(Boolean).join(", ")
-  );
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+  const locationParts = [address, city, province].filter(Boolean);
+  const fullLocation = locationParts.join(', ');
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullLocation)}`;
 
   return (
     <section className="mx-5 mt-5" aria-label="Lokasi Masjid">
+      {/* Section header with Islamic ornament */}
       <div className="flex items-center gap-2 mb-3">
-        <MapPin size={15} className="text-yellow-400" strokeWidth={2} aria-hidden="true" />
-        <h2 className="text-sm font-bold" style={{ color: "var(--pwa-text-primary)" }}>Lokasi</h2>
+        <span className="text-blue-400 text-base leading-none" aria-hidden="true">✦</span>
+        <h2 className="text-base font-bold" style={{ color: 'var(--pwa-text-primary)' }}>Lokasi</h2>
       </div>
 
       <div
-        className="rounded-3xl border p-4"
+        className="glass-card rounded-3xl overflow-hidden"
         style={{
-          background: "var(--pwa-bg-card)",
-          borderColor: "var(--pwa-border-subtle)",
+          background: 'var(--pwa-bg-card)',
+          border: '1px solid var(--pwa-border-subtle)',
         }}
       >
-        <div className="flex items-start gap-3">
+        {/* Address row */}
+        <div className="flex items-start gap-4 px-5 py-4">
           <div
-            className="w-9 h-9 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0 mt-0.5"
-            aria-hidden="true"
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'var(--pwa-bg-card-hover)', border: '1px solid rgba(96,165,250,0.15)' }}
           >
-            <MapPin size={16} className="text-yellow-400" strokeWidth={2} />
+            <MapPin size={20} className="text-blue-400" strokeWidth={2} />
           </div>
-          <address className="flex-1 min-w-0 not-italic">
-            <p
-              className="text-sm font-medium leading-snug"
-              style={{ color: "var(--pwa-text-primary)" }}
-            >
-              {fullAddress}
-            </p>
-          </address>
+          <div className="flex-1 min-w-0 py-0.5">
+            {address && (
+              <p className="text-base font-medium leading-snug" style={{ color: 'var(--pwa-text-primary)' }}>
+                {address}
+              </p>
+            )}
+            {(city || province) && (
+              <p className="text-sm mt-0.5" style={{ color: 'var(--pwa-text-muted)' }}>
+                {[city, province].filter(Boolean).join(', ')}
+              </p>
+            )}
+          </div>
         </div>
 
-        <a
-          href={mapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 flex items-center justify-center gap-2 w-full bg-yellow-500/10 border border-yellow-500/20 active:bg-yellow-500/20 text-yellow-400 font-bold text-sm rounded-2xl py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
-          aria-label={`Buka lokasi ${mosqueName ?? "masjid"} di Google Maps`}
-        >
-          <Navigation size={15} strokeWidth={2.5} aria-hidden="true" />
-          Buka Google Maps
-        </a>
+        {/* Google Maps button — larger touch target */}
+        <div className="px-5 pb-5">
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-blue-500/10 border border-blue-400/20 text-blue-400 text-base font-bold transition-colors active:bg-blue-500/20"
+            aria-label={`Buka lokasi ${mosqueName ?? 'masjid'} di Google Maps`}
+          >
+            <Navigation size={18} strokeWidth={2.5} />
+            Buka di Google Maps
+          </a>
+        </div>
       </div>
     </section>
   );

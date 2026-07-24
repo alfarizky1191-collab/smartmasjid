@@ -13,7 +13,6 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useFavoriteMosque } from "@/hooks/useFavoriteMosque";
 import { usePushNotification } from "@/hooks/usePushNotification";
@@ -412,43 +411,16 @@ export default function AppHomePage() {
       />
 
       {/* ── 2. Hero — mosque identity + clock island ──────────────── */}
-      <section className="relative overflow-hidden px-5 pt-6 pb-5" aria-label="Informasi Masjid">
-        {/* Ambient orbs — decorative only */}
+      <section
+        className="relative overflow-hidden px-5 pt-7 pb-5 islamic-pattern-bg"
+        aria-label="Informasi Masjid"
+      >
+        {/* Ambient gradient orbs */}
         <div className="absolute inset-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
-          <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-emerald-500/5 blur-2xl" />
-          <div className="absolute -bottom-6 -left-6 w-36 h-36 rounded-full bg-yellow-500/5 blur-2xl" />
-        </div>
-
-        {/* Mosque identity */}
-        <div className="relative z-10 flex items-center gap-4 mb-5">
-          {mosque?.logo_url ? (
-            <Image
-              src={mosque.logo_url}
-              alt={`Logo ${mosque.name}`}
-              width={56}
-              height={56}
-              className="rounded-2xl object-cover border-2 border-emerald-400 shrink-0"
-              priority
-              unoptimized={mosque.logo_url.startsWith("http")}
-            />
-          ) : (
-            <div
-              className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 border-2 border-emerald-400/60 flex items-center justify-center shrink-0"
-              aria-hidden="true"
-            >
-              <span className="text-2xl">🕌</span>
-            </div>
-          )}
-
-          <div>
-            <h1 className="text-xl font-extrabold leading-tight" style={{ color: "var(--pwa-text-primary)" }}>{mosque?.name}</h1>
-            {mosque?.tagline && (
-              <p className="text-xs mt-0.5 italic leading-snug" style={{ color: "var(--pwa-text-muted)" }}>{mosque.tagline}</p>
-            )}
-            {locationText && (
-              <p className="text-xs text-emerald-400 font-medium mt-0.5">{locationText}</p>
-            )}
-          </div>
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-10 blur-3xl"
+            style={{ background: "radial-gradient(circle, #10b981, transparent)" }} />
+          <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full opacity-8 blur-3xl"
+            style={{ background: "radial-gradient(circle, #d4af37, transparent)" }} />
         </div>
 
         {/* Clock island — only this re-renders every second */}
@@ -463,7 +435,7 @@ export default function AppHomePage() {
       </section>
 
       {/* ── 3. Countdown bar ──────────────────────────────────────── */}
-      <div className="mt-1 mb-4">
+      <div className="mt-4 mb-5">
         <CountdownBar
           prayers={prayers}
           iqomahSecs={iqomahSecs}
@@ -474,14 +446,27 @@ export default function AppHomePage() {
 
       {/* ── Push Notification Card ───────────────────────────────── */}
       {canShowNotifCard && (
-        <div className="mx-4 sm:mx-5 mb-5 bg-gradient-to-r from-emerald-900/40 via-slate-900/60 to-emerald-900/40 backdrop-blur-md border border-emerald-500/30 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 text-xl shrink-0">
+        <div
+          className="mx-5 mb-5 rounded-3xl p-4 flex items-center justify-between gap-4 shadow-premium"
+          style={{
+            background: "rgba(16,185,129,0.06)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            border: "1px solid rgba(16,185,129,0.2)",
+          }}
+        >
+          <div className="flex items-center gap-3.5">
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center text-amber-300 text-2xl shrink-0"
+              style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.25)" }}
+            >
               🔔
             </div>
             <div>
-              <p className="text-sm font-bold leading-snug" style={{ color: "var(--pwa-text-primary)" }}>Notifikasi Waktu Sholat</p>
-              <p className="text-xs" style={{ color: "var(--pwa-text-secondary)" }}>
+              <p className="text-base font-bold leading-snug" style={{ color: "var(--pwa-text-primary)" }}>
+                Notifikasi Waktu Sholat
+              </p>
+              <p className="text-sm mt-0.5" style={{ color: "var(--pwa-text-secondary)" }}>
                 {push.isSubscribed ? "Notifikasi adzan & kegiatan aktif" : "Dapatkan info adzan & kegiatan masjid"}
               </p>
             </div>
@@ -491,18 +476,29 @@ export default function AppHomePage() {
             <button
               onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
               disabled={push.isLoading || push.isDenied}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 shrink-0 shadow-md ${
+              className={`px-5 py-3 rounded-2xl font-bold text-sm transition-all duration-200 shrink-0 active:scale-95 ${
                 push.isSubscribed
-                  ? "bg-slate-800 text-emerald-300 border border-emerald-500/40 hover:bg-slate-700"
+                  ? "bg-slate-800 text-emerald-300 border border-emerald-500/40"
                   : push.isDenied
                   ? "bg-slate-800 text-slate-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-amber-500/30 active:scale-95"
+                  : "text-slate-950 active:scale-95"
               }`}
+              style={!push.isSubscribed && !push.isDenied ? {
+                background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+              } : undefined}
             >
               {push.isLoading ? "Proses..." : push.isSubscribed ? "Aktif ✓" : push.isDenied ? "Ditolak" : "Aktifkan"}
             </button>
           ) : (
-            <span className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 shrink-0">
+            <span
+              className="px-4 py-3 rounded-2xl text-xs font-bold shrink-0"
+              style={{
+                background: "rgba(148,163,184,0.1)",
+                border: "1px solid rgba(148,163,184,0.2)",
+                color: "var(--pwa-text-muted)",
+              }}
+            >
               Install PWA
             </span>
           )}
@@ -510,28 +506,36 @@ export default function AppHomePage() {
       )}
 
       {/* ── 4. Quick actions ──────────────────────────────────────── */}
-      <QuickAction actions={quickActions} />
+      <div className="mb-6">
+        <QuickAction actions={quickActions} />
+      </div>
 
       {/* ── 5. Prayer grid ────────────────────────────────────────── */}
       {prayers.length > 0 && (
-        <div className="mt-5">
+        <div className="mb-6">
           <PrayerCard prayers={decoratedPrayers} syuruqTime={syuruqTime} />
         </div>
       )}
 
       {/* ── 6. Slide show ─────────────────────────────────────────── */}
-      {slides.length > 0 && <SlideShow slides={slides} />}
+      {slides.length > 0 && (
+        <div className="mb-6">
+          <SlideShow slides={slides} />
+        </div>
+      )}
 
       {/* ── 7. Officers ───────────────────────────────────────────── */}
-      <OfficerStrip officers={officers} />
+      <div className="mb-6">
+        <OfficerStrip officers={officers} />
+      </div>
 
       {/* ── 8. Announcements ──────────────────────────────────────── */}
-      <div className="mt-5">
+      <div className="mb-6">
         <AnnouncementCard announcements={announcementItems} />
       </div>
 
       {/* ── 9. Events ─────────────────────────────────────────────── */}
-      <div className="mt-5">
+      <div className="mb-6">
         <EventCard events={eventItems} />
       </div>
 
@@ -542,13 +546,13 @@ export default function AppHomePage() {
 
       {/* ── 11. QRIS ──────────────────────────────────────────────── */}
       {qrisUrl && (
-        <div id="section-qris">
+        <div id="section-qris" className="mb-6">
           <QrisCard imageUrl={qrisUrl} mosqueName={mosque?.name} />
         </div>
       )}
 
       {/* ── 12. Location ──────────────────────────────────────────── */}
-      <div id="section-location">
+      <div id="section-location" className="mb-6">
         <LocationCard
           address={mosque?.address ?? null}
           city={mosque?.city ?? null}
@@ -558,7 +562,7 @@ export default function AppHomePage() {
       </div>
 
       {/* ── 13. Contact ───────────────────────────────────────────── */}
-      <div id="section-contact">
+      <div id="section-contact" className="mb-6">
         <ContactCard
           phone={mosque?.phone ?? null}
           whatsapp={mosque?.whatsapp ?? null}
@@ -568,13 +572,17 @@ export default function AppHomePage() {
       </div>
 
       {/* ── 14. Live TV button ────────────────────────────────────── */}
-      {mosque?.slug && <LiveTVButton slug={mosque.slug} />}
+      {mosque?.slug && (
+        <div className="mb-6">
+          <LiveTVButton slug={mosque.slug} />
+        </div>
+      )}
 
       {/* Hidden audio */}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio ref={audioRef} src="/audio/adzan.mp3" aria-hidden="true" />
 
-      <div className="h-8" aria-hidden="true" />
+      <div className="h-24" aria-hidden="true" />
     </div>
       </PullToRefresh>
     </PageTransition>

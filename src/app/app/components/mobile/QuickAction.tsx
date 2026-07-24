@@ -12,29 +12,33 @@ export interface QuickActionItem {
   onClick?: () => void;
 }
 
-const VARIANT_STYLES: Record<
+const VARIANT_INLINE: Record<
   QuickActionItem["variant"],
-  { bg: string; icon: string; ring: string }
+  { bg: string; border: string; iconBg: string; iconColor: string }
 > = {
   emerald: {
-    bg: "bg-emerald-500/10 border-emerald-500/20",
-    icon: "text-emerald-400",
-    ring: "active:bg-emerald-500/20",
+    bg: "rgba(16,185,129,0.08)",
+    border: "rgba(16,185,129,0.2)",
+    iconBg: "rgba(16,185,129,0.12)",
+    iconColor: "text-emerald-400",
   },
   yellow: {
-    bg: "bg-yellow-500/10 border-yellow-500/20",
-    icon: "text-yellow-400",
-    ring: "active:bg-yellow-500/20",
+    bg: "rgba(251,191,36,0.08)",
+    border: "rgba(251,191,36,0.2)",
+    iconBg: "rgba(251,191,36,0.12)",
+    iconColor: "text-amber-400",
   },
   blue: {
-    bg: "bg-blue-500/10 border-blue-500/20",
-    icon: "text-blue-400",
-    ring: "active:bg-blue-500/20",
+    bg: "rgba(59,130,246,0.08)",
+    border: "rgba(59,130,246,0.2)",
+    iconBg: "rgba(59,130,246,0.12)",
+    iconColor: "text-blue-400",
   },
   purple: {
-    bg: "bg-purple-500/10 border-purple-500/20",
-    icon: "text-purple-400",
-    ring: "active:bg-purple-500/20",
+    bg: "rgba(168,85,247,0.08)",
+    border: "rgba(168,85,247,0.2)",
+    iconBg: "rgba(168,85,247,0.12)",
+    iconColor: "text-purple-400",
   },
 };
 
@@ -78,40 +82,49 @@ export default function QuickAction({
 }: QuickActionProps) {
   return (
     <section className="mx-5">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-1 h-4 bg-emerald-400 rounded-full" />
-        <h3 className="text-sm font-bold" style={{ color: "var(--pwa-text-primary)" }}>Akses Cepat</h3>
+      {/* Section header with Islamic divider */}
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-amber-300 text-base" aria-hidden="true">☽</span>
+        <h3 className="text-base font-bold" style={{ color: "var(--pwa-text-primary)" }}>
+          Akses Cepat
+        </h3>
+        <div
+          className="flex-1 h-px"
+          style={{
+            background: "linear-gradient(to right, rgba(212,175,55,0.3), transparent)",
+          }}
+          aria-hidden="true"
+        />
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-4">
         {actions.map((action) => {
-          const styles = VARIANT_STYLES[action.variant];
+          const styles = VARIANT_INLINE[action.variant];
           const Icon = action.icon;
 
           const commonClass = `
-            flex flex-col items-center justify-center gap-1.5
-            rounded-2xl border py-3.5 px-2
-            transition-all duration-150 active:scale-95
-            ${styles.bg} ${styles.ring}
+            flex flex-col items-center justify-center gap-2.5
+            rounded-2xl py-5 px-3
+            transition-all duration-150 active:scale-95 active:shadow-inner
           `;
 
           const content = (
             <>
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ background: "var(--pwa-bg-card-hover)" }}
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ background: styles.iconBg }}
               >
-                <Icon size={20} strokeWidth={1.8} className={styles.icon} />
+                <Icon size={26} strokeWidth={1.8} className={styles.iconColor} />
               </div>
               <span
-                className="text-[11px] font-semibold text-center leading-tight"
+                className="text-sm font-bold text-center leading-tight"
                 style={{ color: "var(--pwa-text-primary)" }}
               >
                 {action.label}
               </span>
               {action.sublabel && (
                 <span
-                  className="text-[9px] text-center leading-tight"
+                  className="text-xs text-center leading-tight"
                   style={{ color: "var(--pwa-text-muted)" }}
                 >
                   {action.sublabel}
@@ -120,7 +133,6 @@ export default function QuickAction({
             </>
           );
 
-          // Render as anchor when href is provided, otherwise button
           if (action.href) {
             return (
               <a
@@ -129,6 +141,12 @@ export default function QuickAction({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={commonClass}
+                style={{
+                  background: styles.bg,
+                  border: `1px solid ${styles.border}`,
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                }}
               >
                 {content}
               </a>
@@ -140,6 +158,12 @@ export default function QuickAction({
               key={action.id}
               onClick={action.onClick}
               className={commonClass}
+              style={{
+                background: styles.bg,
+                border: `1px solid ${styles.border}`,
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+              }}
             >
               {content}
             </button>

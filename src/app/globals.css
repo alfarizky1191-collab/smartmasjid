@@ -185,6 +185,17 @@
   --pwa-input-bg: #f8fafc;
   --pwa-skeleton: #e2e8f0;
   --pwa-skeleton-shine: #f8fafc;
+
+  /* Premium Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+  
+  /* Islamic Accent Colors */
+  --islamic-gold: #d4af37;
+  --islamic-gold-light: #f5e6c3;
+  --islamic-emerald: #10b981;
+  --islamic-emerald-light: #6ee7b7;
 }
 
 .dark {
@@ -203,4 +214,113 @@
   --pwa-input-bg: #1e293b;
   --pwa-skeleton: #1e293b;
   --pwa-skeleton-shine: #334155;
+
+  /* Premium Glassmorphism Dark */
+  --glass-bg: rgba(30, 41, 59, 0.4);
+  --glass-border: rgba(148, 163, 184, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.3);
+  
+  /* Islamic Accent Colors Dark */
+  --islamic-gold: #fbbf24;
+  --islamic-gold-light: #fcd34d;
+  --islamic-emerald: #34d399;
+  --islamic-emerald-light: #6ee7b7;
+}
+
+/* ── Premium Glass Utilities ─────────────────────────────────────────── */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    0 8px 32px 0 var(--glass-shadow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.glass-card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 40px 0 var(--glass-shadow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+}
+
+.glass-card-active:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+/* ── Islamic Pattern Background ──────────────────────────────────────── */
+.islamic-pattern-bg {
+  background-image: 
+    radial-gradient(circle at 25px 25px, rgba(212, 175, 55, 0.03) 2%, transparent 0%),
+    radial-gradient(circle at 75px 75px, rgba(16, 185, 129, 0.03) 2%, transparent 0%);
+  background-size: 100px 100px;
+  background-position: 0 0, 50px 50px;
+}
+
+.dark .islamic-pattern-bg {
+  background-image: 
+    radial-gradient(circle at 25px 25px, rgba(251, 191, 36, 0.04) 2%, transparent 0%),
+    radial-gradient(circle at 75px 75px, rgba(52, 211, 153, 0.04) 2%, transparent 0%);
+}
+
+/* ── Floating Card Effect ────────────────────────────────────────────── */
+.floating-card {
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* ── Premium Shadow Layers ───────────────────────────────────────────── */
+.shadow-premium {
+  box-shadow: 
+    0 1px 2px 0 rgba(0, 0, 0, 0.05),
+    0 4px 12px -2px rgba(0, 0, 0, 0.08),
+    0 16px 32px -4px rgba(0, 0, 0, 0.06);
+}
+
+.dark .shadow-premium {
+  box-shadow: 
+    0 1px 2px 0 rgba(0, 0, 0, 0.3),
+    0 4px 12px -2px rgba(0, 0, 0, 0.4),
+    0 16px 32px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Islamic Divider ─────────────────────────────────────────────────── */
+.islamic-divider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.islamic-divider::before,
+.islamic-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--islamic-gold),
+    transparent
+  );
+  opacity: 0.3;
+}
+
+/* ── Premium Touch Target ────────────────────────────────────────────── */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }

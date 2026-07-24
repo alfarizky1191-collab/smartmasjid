@@ -17,24 +17,27 @@ interface EventCardProps {
 export default function EventCard({ events }: EventCardProps) {
   return (
     <section className="mx-5" aria-label="Jadwal Kegiatan">
+      {/* Section header */}
       <div className="flex items-center gap-2 mb-3">
-        <CalendarDays size={15} className="text-emerald-400" strokeWidth={2} aria-hidden="true" />
-        <h2 className="text-sm font-bold" style={{ color: "var(--pwa-text-primary)" }}>Jadwal Kegiatan</h2>
+        <CalendarDays size={16} className="text-emerald-400" strokeWidth={2} aria-hidden="true" />
+        <h2 className="text-base font-bold" style={{ color: "var(--pwa-text-primary)" }}>Jadwal Kegiatan</h2>
+        <div className="flex-1 h-px" style={{ background: "linear-gradient(to right, var(--pwa-border-subtle), transparent)" }} aria-hidden="true" />
       </div>
 
       {events.length === 0 ? (
         <div
-          className="rounded-3xl border p-5 flex flex-col items-center justify-center gap-2 py-8"
+          className="rounded-3xl border flex flex-col items-center justify-center gap-3 py-12"
           style={{
             background: "var(--pwa-bg-card)",
             borderColor: "var(--pwa-border-subtle)",
+            backdropFilter: "blur(12px)",
           }}
         >
-          <CalendarDays size={28} strokeWidth={1.5} aria-hidden="true" style={{ color: "var(--pwa-text-muted)" }} />
+          <CalendarDays size={36} strokeWidth={1.5} aria-hidden="true" style={{ color: "var(--pwa-text-muted)" }} />
           <p className="text-sm" style={{ color: "var(--pwa-text-muted)" }}>Belum ada kegiatan</p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2" role="list">
+        <ul className="flex flex-col gap-3" role="list">
           {events.slice(0, 5).map((event) => {
             // Parse date safely server-side
             const dateParts = event.eventDate.split("-").map(Number);
@@ -47,33 +50,42 @@ export default function EventCard({ events }: EventCardProps) {
               <li
                 key={event.id}
                 className={[
-                  "relative overflow-hidden rounded-2xl border px-4 py-3.5 flex items-start gap-3",
+                  "relative overflow-hidden rounded-2xl border px-5 py-4 flex items-start gap-4",
                   event.isToday
-                    ? "bg-emerald-500/10 border-emerald-500/30"
+                    ? "border-emerald-500/40"
                     : "",
                 ].join(" ")}
-                style={!event.isToday ? {
-                  background: "var(--pwa-bg-card)",
-                  borderColor: "var(--pwa-border-subtle)",
-                } : undefined}
+                style={
+                  event.isToday
+                    ? {
+                        background: "linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(5,150,105,0.06) 100%)",
+                        borderColor: "rgba(16,185,129,0.4)",
+                        boxShadow: "0 0 16px rgba(16,185,129,0.15)",
+                      }
+                    : {
+                        background: "var(--pwa-bg-card)",
+                        borderColor: "var(--pwa-border-subtle)",
+                        backdropFilter: "blur(12px)",
+                      }
+                }
               >
                 {/* Date badge */}
                 <div
                   className={[
-                    "shrink-0 flex flex-col items-center justify-center w-10 h-12 rounded-xl",
+                    "shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-2xl",
                     event.isToday ? "bg-emerald-500" : "",
                   ].join(" ")}
                   style={!event.isToday ? { background: "var(--pwa-bg-card-hover)" } : undefined}
                   aria-hidden="true"
                 >
                   <span
-                    className={`text-[18px] font-extrabold leading-none ${event.isToday ? "text-black" : ""}`}
+                    className={`text-2xl font-extrabold leading-none ${event.isToday ? "text-black" : ""}`}
                     style={!event.isToday ? { color: "var(--pwa-text-primary)" } : undefined}
                   >
                     {day}
                   </span>
                   <span
-                    className={`text-[9px] font-semibold uppercase tracking-wide ${event.isToday ? "text-black/70" : ""}`}
+                    className={`text-xs font-semibold uppercase tracking-wide ${event.isToday ? "text-black/70" : ""}`}
                     style={!event.isToday ? { color: "var(--pwa-text-muted)" } : undefined}
                   >
                     {monthStr}
@@ -84,13 +96,13 @@ export default function EventCard({ events }: EventCardProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <p
-                      className={`text-sm font-bold leading-snug line-clamp-2 flex-1 ${event.isToday ? "text-emerald-300" : ""}`}
+                      className={`text-base font-bold leading-snug line-clamp-2 flex-1 ${event.isToday ? "text-emerald-300" : ""}`}
                       style={!event.isToday ? { color: "var(--pwa-text-primary)" } : undefined}
                     >
                       {event.title}
                     </p>
                     {event.isToday && (
-                      <span className="shrink-0 text-[9px] bg-emerald-500 text-black font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                      <span className="shrink-0 text-xs bg-emerald-500 text-black font-bold px-2 py-1 rounded-full uppercase tracking-wide">
                         Hari ini
                       </span>
                     )}
@@ -99,9 +111,9 @@ export default function EventCard({ events }: EventCardProps) {
                   <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                     {event.speaker && (
                       <div className="flex items-center gap-1">
-                        <User size={11} strokeWidth={2} aria-hidden="true" style={{ color: "var(--pwa-text-muted)" }} />
+                        <User size={12} strokeWidth={2} aria-hidden="true" style={{ color: "var(--pwa-text-muted)" }} />
                         <span
-                          className="text-[11px] truncate max-w-[140px]"
+                          className="text-sm truncate max-w-[140px]"
                           style={{ color: "var(--pwa-text-muted)" }}
                         >
                           {event.speaker}
@@ -110,9 +122,9 @@ export default function EventCard({ events }: EventCardProps) {
                     )}
                     {event.eventTime && (
                       <div className="flex items-center gap-1">
-                        <Clock size={11} strokeWidth={2} aria-hidden="true" style={{ color: "var(--pwa-text-muted)" }} />
+                        <Clock size={12} strokeWidth={2} aria-hidden="true" style={{ color: "var(--pwa-text-muted)" }} />
                         <time
-                          className="text-[11px]"
+                          className="text-sm"
                           style={{ color: "var(--pwa-text-muted)" }}
                         >
                           {event.eventTime}
