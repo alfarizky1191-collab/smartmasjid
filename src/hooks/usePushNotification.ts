@@ -28,19 +28,31 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-  || "BMGo_iix-OGUlFc9Fdk2GEMIjuVW9rXpBVozyO0M9gMbFzhw5eGbon3uZM8xmEdgVL5U65n0G78CZ6F5N280k10";
+  || "BIE1ipi2UxbLc2G9JRgIu4JqtPY10iyBikgVj2Gox_miNRxVR6iu3Z8Unq6Y65SZAl7Z4gd7QHfG6oRTPpX6PmY";
 const STORAGE_KEY = "push_subscribed_mosque";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const buffer = new ArrayBuffer(rawData.length);
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < rawData.length; i++) {
-    bytes[i] = rawData.charCodeAt(i);
+  // Sanitasi: trim whitespace, newlines, null bytes yang mungkin masuk dari env
+  const cleaned = base64String.trim().replace(/[\n\r\0]/g, "");
+  
+  // Tambahkan padding base64 jika perlu
+  const padding = "=".repeat((4 - (cleaned.length % 4)) % 4);
+  const base64 = (cleaned + padding).replace(/-/g, "+").replace(/_/g, "/");
+  
+  try {
+    const rawData = window.atob(base64);
+    const buffer = new ArrayBuffer(rawData.length);
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < rawData.length; i++) {
+      bytes[i] = rawData.charCodeAt(i);
+    }
+    return bytes;
+  } catch (err) {
+    // Jika atob gagal, log error dan throw kembali dengan pesan yang lebih jelas
+    console.error("[push] urlBase64ToUint8Array failed:", err);
+    console.error("[push] Key length:", cleaned.length, "Key sample:", cleaned.substring(0, 20) + "...");
+    throw new Error("VAPID key tidak valid atau rusak. Hubungi admin.");
   }
-  return bytes;
 }
 
 async function getRegistration(): Promise<ServiceWorkerRegistration | null> {

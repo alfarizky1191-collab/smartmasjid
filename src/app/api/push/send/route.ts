@@ -12,8 +12,8 @@ import webpush from "web-push";
  * Body: { mosque_id, title, body, url?, icon? }
  */
 
-const DEFAULT_VAPID_PUBLIC_KEY  = "BMGo_iix-OGUlFc9Fdk2GEMIjuVW9rXpBVozyO0M9gMbFzhw5eGbon3uZM8xmEdgVL5U65n0G78CZ6F5N280k10";
-const DEFAULT_VAPID_PRIVATE_KEY = "v-dI6MdZIVMKdmsFdB4OOSWOECPTmeD-ZPCDeVz4Xrw";
+const DEFAULT_VAPID_PUBLIC_KEY  = "BIE1ipi2UxbLc2G9JRgIu4JqtPY10iyBikgVj2Gox_miNRxVR6iu3Z8Unq6Y65SZAl7Z4gd7QHfG6oRTPpX6PmY";
+const DEFAULT_VAPID_PRIVATE_KEY = "tTLvdS7bVA51Awo0KJo0_ewbiHRSC2GYiW9mB2JCSWU";
 const DEFAULT_VAPID_SUBJECT     = "mailto:admin@smartmasjid.id";
 
 const DEFAULT_SUPABASE_URL = "https://ndwzafvikiosrdhbhxbk.supabase.co";
