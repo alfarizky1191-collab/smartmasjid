@@ -1735,46 +1735,56 @@ return () =>
               </div>
             </div>
 
-            {/* Side Info Panels (QRIS / Petugas / Events) */}
-            <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-hidden">
-              
-              {/* Row 1: QRIS or Events */}
-              {qrisUrl ? (
-                <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-4 border border-[var(--theme-border)] flex items-center gap-4 shadow-sm min-h-0 flex-1">
-                  <div className="flex-shrink-0 h-full max-h-[120px] aspect-square bg-white p-1.5 rounded-xl border border-[var(--theme-border)] flex items-center justify-center">
-                    <img src={qrisUrl} alt="QRIS" className="h-full w-full object-contain rounded-lg" />
+            {/* Side Info Panels (QRIS + Events + Petugas) */}
+            <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-hidden">
+
+              {/* QRIS — selalu tampil jika ada */}
+              {qrisUrl && (
+                <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-3 border border-[var(--theme-border)] flex items-center gap-3 shadow-sm flex-shrink-0">
+                  <div className="w-20 h-20 shrink-0 bg-white p-1 rounded-xl border border-[var(--theme-border)] flex items-center justify-center">
+                    <img src={qrisUrl} alt="QRIS" className="w-full h-full object-contain rounded-lg" />
                   </div>
-                  <div className="flex-1 flex flex-col justify-center min-w-0">
+                  <div className="flex-1 min-w-0">
                     <span className="text-xs font-bold text-[var(--theme-primary)] tracking-wider uppercase">Infaq & Donasi</span>
-                    <h3 className="text-base font-bold text-[var(--theme-text-primary)] mt-1">Scan QRIS Masjid</h3>
-                    <p className="text-xs text-[var(--theme-text-secondary)] mt-1 leading-relaxed line-clamp-2">
-                      Dukung operasional dan kegiatan masjid dengan scan QRIS di samping.
+                    <h3 className="text-sm font-bold text-[var(--theme-text-primary)] mt-0.5">Scan QRIS Masjid</h3>
+                    <p className="text-xs text-[var(--theme-text-secondary)] mt-0.5 leading-relaxed line-clamp-2">
+                      Dukung kegiatan masjid dengan scan QRIS.
                     </p>
                   </div>
                 </div>
-              ) : events.length > 0 ? (
-                <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-4 border border-[var(--theme-border)] shadow-sm min-h-0 flex-1 flex flex-col">
-                  <span className="text-xs font-bold text-[var(--theme-primary)] tracking-wider uppercase mb-2">📅 Agenda Terdekat</span>
+              )}
+
+              {/* Kegiatan — selalu tampil */}
+              <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-3 border border-[var(--theme-border)] shadow-sm flex flex-col min-h-0 flex-1">
+                <span className="text-xs font-bold text-[var(--theme-primary)] tracking-wider uppercase mb-2 flex-shrink-0">📅 Agenda Kegiatan</span>
+                {events.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <p className="text-xs text-center text-[var(--theme-text-secondary)]">Belum ada kegiatan</p>
+                  </div>
+                ) : (
                   <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1">
-                    {events.slice(0, 2).map((ev) => (
+                    {events.slice(0, 3).map((ev) => (
                       <div key={ev.id} className="bg-[var(--theme-background)]/50 p-2.5 rounded-xl border border-[var(--theme-border)]/50">
                         <h4 className="text-sm font-bold text-[var(--theme-text-primary)] truncate">{ev.title}</h4>
                         <div className="flex justify-between items-center text-xs text-[var(--theme-text-secondary)] mt-1">
                           <span className="truncate">{ev.speaker || "Umum"}</span>
-                          <span className="flex-shrink-0 ml-2 font-medium">{ev.event_time}</span>
+                          <span className="flex-shrink-0 ml-2 font-medium">{ev.event_time || ""}</span>
                         </div>
+                        <span className="text-[10px] text-[var(--theme-text-secondary)] mt-0.5 block">
+                          {new Date(ev.event_date + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
                       </div>
                     ))}
                   </div>
-                </div>
-              ) : null}
+                )}
+              </div>
 
-              {/* Row 2: Petugas Hari Ini */}
-              <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-4 border border-[var(--theme-border)] shadow-sm flex flex-col min-h-0 flex-1">
+              {/* Petugas Hari Ini */}
+              <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-3 border border-[var(--theme-border)] shadow-sm flex flex-col min-h-0 flex-shrink-0">
                 <span className="text-xs font-bold text-[var(--theme-primary)] tracking-wider uppercase mb-2">👥 Petugas Hari Ini</span>
-                <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 pr-1 justify-center">
+                <div className="flex flex-col gap-1.5">
                   {todayOfficers.length === 0 ? (
-                    <p className="text-sm text-center text-[var(--theme-text-secondary)] py-2">Belum ada jadwal petugas</p>
+                    <p className="text-xs text-center text-[var(--theme-text-secondary)] py-1">Belum ada jadwal petugas</p>
                   ) : (
                     todayOfficers.slice(0, 3).map((o, i) => (
                       <div key={i} className="flex justify-between items-center bg-[var(--theme-background)]/50 px-3 py-1.5 rounded-xl border border-[var(--theme-border)]/30">

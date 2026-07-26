@@ -102,23 +102,29 @@ export default function RoyalOttomanLayout({
 
   // ─── Adzan / Prayer overlay ──────────────────────────────────────────────
   if (showAdzan) {
+    const isIqomahPhase = iqomahCountdown > 0 && !showAdzan; // akan selalu false di sini — cek lewat prop
     return (
-      <div className="min-h-screen bg-yellow-950 flex flex-col items-center justify-center gap-8 text-white p-8"
-        style={{ fontFamily: "'Playfair Display', serif" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-8 text-white p-8"
+        style={{
+          background: isIqomahPhase
+            ? "linear-gradient(135deg, #0b1a2e 0%, #064e3b 100%)"
+            : "linear-gradient(135deg, #78350f 0%, #92400e 50%, #78350f 100%)",
+          fontFamily: "'Playfair Display', serif",
+        }}>
         <div className="text-8xl">🕌</div>
         <h1 className="text-8xl font-bold text-amber-300 text-center animate-pulse">
           ADZAN {currentPrayer.toUpperCase()}
         </h1>
-        <p className="text-5xl text-amber-100 animate-bounce">Hayya 'alash Shalah</p>
+        <p className="text-5xl text-amber-100 animate-bounce">Hayya &apos;alash Shalah</p>
         <p className="text-3xl text-amber-200/80">Mari tinggalkan aktivitas sejenak</p>
-        <p className="text-3xl text-amber-200/80">📵 Mohon tenang & matikan HP</p>
+        <p className="text-3xl text-amber-200/80">📵 Mohon tenang &amp; matikan HP</p>
         <div className="mt-4 bg-amber-900/40 rounded-2xl px-10 py-6 border border-amber-500/30">
-          <p className="text-2xl text-center text-amber-300 font-semibold">IQOMAH</p>
+          <p className="text-2xl text-center text-amber-300 font-semibold uppercase tracking-widest">Iqomah dalam</p>
           <p className="text-6xl font-bold text-center text-white font-mono mt-2">
             {formatIqomah(iqomahCountdown)}
           </p>
         </div>
-        <button onClick={stopAdzan} className="mt-4 bg-red-600 px-10 py-4 rounded-2xl text-white text-2xl font-bold hover:bg-red-700">
+        <button onClick={stopAdzan} className="mt-4 bg-red-600 px-10 py-4 rounded-2xl text-white text-2xl font-bold hover:bg-red-700 cursor-pointer">
           Stop Adzan
         </button>
       </div>
@@ -379,16 +385,20 @@ export default function RoyalOttomanLayout({
               </div>
             )}
 
-            {/* Agenda */}
-            {events.length > 0 && (
-              <div className="flex flex-col gap-2 min-h-0 flex-1">
-                <p className="text-amber-400 text-xs tracking-[0.2em] uppercase mt-1">📅 Agenda Masjid</p>
-                <GoldDivider className="w-full" />
+            {/* Agenda — selalu tampil */}
+            <div className="flex flex-col gap-2 min-h-0 flex-1">
+              <p className="text-amber-400 text-xs tracking-[0.2em] uppercase mt-1">📅 Agenda Kegiatan</p>
+              <GoldDivider className="w-full" />
+              {events.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-amber-400/40 text-xs text-center">Belum ada kegiatan</p>
+                </div>
+              ) : (
                 <div className="flex flex-col gap-2 overflow-y-auto flex-1 pr-1">
-                  {events.slice(0, 2).map((ev) => (
+                  {events.slice(0, 3).map((ev) => (
                     <div
                       key={ev.id}
-                      className="rounded-lg px-3 py-2 transition hover:bg-amber-500/5"
+                      className="rounded-lg px-3 py-2"
                       style={{ background: "rgba(212,168,67,0.08)", border: "1px solid rgba(212,168,67,0.2)" }}
                     >
                       <p className="text-amber-100 text-sm font-semibold leading-tight truncate">{ev.title}</p>
@@ -396,13 +406,13 @@ export default function RoyalOttomanLayout({
                         <p className="text-amber-400/70 text-[11px] truncate mt-0.5">{ev.speaker}</p>
                       )}
                       <p className="text-amber-400/60 text-[10px] mt-0.5">
-                        {formatIndonesianDateWithDay(ev.event_date)} • {ev.event_time}
+                        {formatIndonesianDateWithDay(ev.event_date)}{ev.event_time ? ` • ${ev.event_time}` : ""}
                       </p>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Petugas */}
             {todayOfficers.length > 0 && (
