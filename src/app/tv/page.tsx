@@ -1215,7 +1215,8 @@ return () =>
               });
 
               audioRef.current.onended = () => {
-                setShowAdzan(false);
+                // Audio adzan selesai → mulai iqomah tapi TETAP di overlay
+                // (showAdzan tetap true selama iqomah, baru false setelah iqomah selesai)
                 setIsAdzanPlaying(false);
                 isAdzanPlayingRef.current = false;
                 setIsIqomah(true);
@@ -1255,14 +1256,17 @@ return () =>
 
               clearInterval(interval);
 
+              // Iqomah selesai → sembunyikan overlay adzan, tampilkan prayer mode
+              setShowAdzan(false);
               setIsIqomah(false);
               isIqomahRef.current = false;
 
               setShowPrayerMode(true);
 
+              const prayerModeSecs = (mosqueRef.current?.prayer_mode_duration || 10) * 60 * 1000;
               setTimeout(() => {
                 setShowPrayerMode(false);
-              }, 600000);
+              }, prayerModeSecs);
 
               // Play alarm when iqomah ends
               if (alarmRef.current) {
@@ -1330,10 +1334,7 @@ return () =>
           0;
       }
 
-      setShowAdzan(
-        false
-      );
-
+      // Jangan sembunyikan overlay — tetap tampil untuk iqomah countdown
       setIsAdzanPlaying(false);
       isAdzanPlayingRef.current = false;
       setIsIqomah(true);
@@ -1455,27 +1456,51 @@ return () =>
       <div
         className="min-h-screen flex flex-col items-center justify-center gap-8 text-white p-8 animate-page-fade"
         style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
+          background: isIqomah
+            ? "linear-gradient(135deg, #0f172a 0%, #064e3b 100%)"
+            : "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
           color: "var(--theme-text-primary, #fff)",
           fontFamily: "var(--theme-font, inherit)",
         }}
       >
-        <div className="text-8xl animate-bounce">🕌</div>
-        <h1 className="text-8xl font-bold text-[var(--theme-primary,#10b981)] text-center animate-pulse tracking-wide">
-          ADZAN {currentPrayer.toUpperCase()}
-        </h1>
-        <p className="text-5xl text-[var(--theme-time-accent,#fbbf24)] font-medium animate-pulse">Hayya 'alash Shalah</p>
-        <p className="text-3xl text-gray-300">Mari tinggalkan aktivitas sejenak</p>
-        <p className="text-3xl text-gray-300">📵 Mohon tenang & matikan HP</p>
-        <div className="mt-4 bg-[var(--theme-surface,#0f172a)]/80 rounded-3xl px-12 py-8 border border-[var(--theme-border)] shadow-xl">
-          <p className="text-2xl text-center text-gray-400 font-semibold uppercase tracking-widest">IQOMAH</p>
-          <p className="text-7xl font-bold text-center text-[var(--theme-time-accent,#fbbf24)] font-mono mt-3">
-            {formatIqomah(iqomahCountdown)}
-          </p>
-        </div>
-        <button onClick={stopAdzan} className="mt-6 bg-red-600 px-12 py-4 rounded-2xl text-white text-3xl font-bold hover:bg-red-700 transition shadow-lg cursor-pointer">
-          Stop Adzan
-        </button>
+        {!isIqomah ? (
+          /* ── FASE ADZAN ── */
+          <>
+            <div className="text-8xl animate-bounce">🕌</div>
+            <h1 className="text-8xl font-bold text-[var(--theme-primary,#10b981)] text-center animate-pulse tracking-wide">
+              ADZAN {currentPrayer.toUpperCase()}
+            </h1>
+            <p className="text-5xl text-[var(--theme-time-accent,#fbbf24)] font-medium animate-pulse">Hayya &apos;alash Shalah</p>
+            <p className="text-3xl text-gray-300">Mari tinggalkan aktivitas sejenak</p>
+            <p className="text-3xl text-gray-300">📵 Mohon tenang &amp; matikan HP</p>
+            <div className="mt-4 bg-[var(--theme-surface,#0f172a)]/80 rounded-3xl px-12 py-8 border border-[var(--theme-border)] shadow-xl">
+              <p className="text-2xl text-center text-gray-400 font-semibold uppercase tracking-widest">IQOMAH DALAM</p>
+              <p className="text-7xl font-bold text-center text-[var(--theme-time-accent,#fbbf24)] font-mono mt-3">
+                {formatIqomah(iqomahCountdown)}
+              </p>
+            </div>
+            <button onClick={stopAdzan} className="mt-6 bg-red-600 px-12 py-4 rounded-2xl text-white text-3xl font-bold hover:bg-red-700 transition shadow-lg cursor-pointer">
+              Stop Adzan
+            </button>
+          </>
+        ) : (
+          /* ── FASE IQOMAH ── */
+          <>
+            <div className="text-7xl">🕌</div>
+            <h1 className="text-6xl font-bold text-emerald-400 text-center tracking-wide">
+              IQOMAH {currentPrayer.toUpperCase()}
+            </h1>
+            <p className="text-4xl text-gray-300 font-medium">Bersiap untuk sholat berjamaah</p>
+            <p className="text-3xl text-gray-400">📵 Mohon tenang &amp; matikan HP</p>
+            <div className="mt-4 bg-slate-900/80 rounded-3xl px-16 py-10 border border-emerald-500/30 shadow-xl shadow-emerald-900/20">
+              <p className="text-2xl text-center text-gray-400 font-semibold uppercase tracking-widest mb-3">Sholat dimulai dalam</p>
+              <p className="text-9xl font-black text-center text-emerald-400 font-mono tracking-wider">
+                {formatIqomah(iqomahCountdown)}
+              </p>
+            </div>
+            <p className="text-2xl text-gray-500 mt-2">Rapatkan dan luruskan barisan shaf</p>
+          </>
+        )}
       </div>
     )}
 

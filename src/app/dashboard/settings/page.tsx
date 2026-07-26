@@ -47,6 +47,9 @@ export default function SettingsPage() {
   const [districtColumnAvailable, setDistrictColumnAvailable] = useState(true);
   const [shafMessage, setShafMessage] = useState("Harap rapatkan dan luruskan barisan shaf sholat");
   const [shafMessageColumnAvailable, setShafMessageColumnAvailable] = useState(true);
+  const [iqomahDuration, setIqomahDuration] = useState(300); // detik
+  const [prayerModeDuration, setPrayerModeDuration] = useState(10); // menit
+  const [prayerModeDurationAvailable, setPrayerModeDurationAvailable] = useState(true);
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [testiName, setTestiName] = useState('');
   const [testiRole, setTestiRole] = useState('');
@@ -127,7 +130,7 @@ export default function SettingsPage() {
       let localShafMessageAvail = true;
 
       const tryFetch = async (withPostal: boolean, withTagline: boolean, withDistrict: boolean, withShafMessage: boolean) => {
-        const cols = ["name", "slug", "address", "city", "province", ...(withDistrict ? ["district"] : []), ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), ...(withShafMessage ? ["shaf_message"] : []), "logo_url", "adzan_url", "adzan_subuh_url", "alarm_url"].join(", ");
+        const cols = ["name", "slug", "address", "city", "province", ...(withDistrict ? ["district"] : []), ...(withPostal ? ["postal_code"] : []), ...(withTagline ? ["tagline"] : []), ...(withShafMessage ? ["shaf_message"] : []), "logo_url", "adzan_url", "adzan_subuh_url", "alarm_url", "iqomah_duration", "prayer_mode_duration"].join(", ");
         return supabase.from("mosques").select(cols).eq("id", profile.mosque_id).single();
       };
 
@@ -141,6 +144,7 @@ export default function SettingsPage() {
         if (isColErr(msg, "postal_code")) { localPostalAvail = false; setPostalColumnAvailable(false); }
         if (isColErr(msg, "district")) { localDistrictAvail = false; setDistrictColumnAvailable(false); }
         if (isColErr(msg, "shaf_message")) { localShafMessageAvail = false; setShafMessageColumnAvailable(false); }
+        if (isColErr(msg, "prayer_mode_duration")) { setPrayerModeDurationAvailable(false); }
         if (!localPostalAvail || !localTaglineAvail || !localDistrictAvail || !localShafMessageAvail) {
           resp = await tryFetch(localPostalAvail, localTaglineAvail, localDistrictAvail, localShafMessageAvail);
           if ((resp as any).error) {
@@ -199,6 +203,8 @@ export default function SettingsPage() {
         if (localShafMessageAvail) {
           setShafMessage(mosque.shaf_message || "Harap rapatkan dan luruskan barisan shaf sholat");
         }
+        if (mosque.iqomah_duration) setIqomahDuration(Number(mosque.iqomah_duration));
+        if (mosque.prayer_mode_duration) setPrayerModeDuration(Number(mosque.prayer_mode_duration));
       }
       setLoading(false);
     };
@@ -259,6 +265,8 @@ export default function SettingsPage() {
     if (postalColumnAvailable) payload.postal_code = postalCode.trim() || null;
     if (districtColumnAvailable) payload.district = districtName.trim() || null;
     if (shafMessageColumnAvailable) payload.shaf_message = shafMessage.trim();
+    payload.iqomah_duration = Math.max(60, Math.min(1800, Number(iqomahDuration) || 300));
+    if (prayerModeDurationAvailable) payload.prayer_mode_duration = Math.max(1, Math.min(60, Number(prayerModeDuration) || 10));
 
     const { data: updatedMosque, error: saveError } = await supabase
       .from("mosques")
@@ -517,6 +525,51 @@ export default function SettingsPage() {
                 <input className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2" placeholder="Harap rapatkan dan luruskan barisan shaf sholat" value={shafMessage} onChange={(e) => setShafMessage(e.target.value)} />
               </label>
             )}
+
+            {/* Durasi Iqomah & Prayer Mode */}
+            <div className="bg-slate-800/60 rounded-xl p-4 flex flex-col gap-4 border border-slate-700/50">
+              <h3 className="text-sm font-semibold text-emerald-400 uppercase tracking-wider">⏱ Durasi Adzan & Sholat</h3>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-slate-400">Durasi Iqomah <span className="text-slate-500">(detik, 60–1800)</span></span>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={60}
+                    max={1800}
+                    step={30}
+                    className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 w-32 text-center font-mono text-lg"
+                    value={iqomahDuration}
+                    onChange={(e) => setIqomahDuration(Number(e.target.value))}
+                  />
+                  <span className="text-slate-400 text-sm">
+                    = {Math.floor(iqomahDuration / 60)} menit {iqomahDuration % 60 > 0 ? `${iqomahDuration % 60} detik` : ""}
+                  </span>
+                </div>
+              </label>
+
+              {prayerModeDurationAvailable && (
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm text-slate-400">Durasi Prayer Mode <span className="text-slate-500">(menit, 1–60)</span></span>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min={1}
+                      max={60}
+                      step={1}
+                      className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 w-32 text-center font-mono text-lg"
+                      value={prayerModeDuration}
+                      onChange={(e) => setPrayerModeDuration(Number(e.target.value))}
+                    />
+                    <span className="text-slate-400 text-sm">menit setelah iqomah selesai</span>
+                  </div>
+                </label>
+              )}
+
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Overlay TV: Adzan → Iqomah countdown → Pesan shaf → kembali ke layar utama setelah prayer mode selesai.
+              </p>
+            </div>
 
             <button
               onClick={handleSave}
