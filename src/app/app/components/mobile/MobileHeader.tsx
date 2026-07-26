@@ -1,5 +1,7 @@
-// Server Component — premium Islamic glassmorphism header.
+// Client Component — contains ScaleToggle which needs client hooks.
+"use client";
 import Image from "next/image";
+import ScaleToggle from "./ScaleToggle";
 
 interface MobileHeaderProps {
   mosqueName?: string;
@@ -109,16 +111,8 @@ export default function MobileHeader({
             </div>
           </div>
 
-          {/* SmartMasjid badge right */}
-          <div
-            className="relative shrink-0 px-3 py-1.5 rounded-full border"
-            style={{
-              background: "rgba(16,185,129,0.1)",
-              borderColor: "rgba(16,185,129,0.25)",
-            }}
-          >
-            <span className="text-xs font-bold text-emerald-400 tracking-wide">Smart</span>
-          </div>
+          {/* Scale toggle — S / M / L */}
+          <ScaleToggle />
 
           {/* Islamic geometric ornament right */}
           <div className="absolute right-0 top-0 h-full w-12 opacity-10 pointer-events-none overflow-hidden" aria-hidden="true">

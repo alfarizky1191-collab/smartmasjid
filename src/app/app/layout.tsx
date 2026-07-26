@@ -68,6 +68,13 @@ export const viewport: Viewport = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
+      {/* Apply saved font scale BEFORE first paint — prevents layout flash */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){var s=localStorage.getItem('pwa-scale');var m={small:14,medium:16,large:18};document.documentElement.style.fontSize=(m[s]||16)+'px';})();`,
+        }}
+      />
+
       {/* Offline banner — fixed top, shows only when offline */}
       <OfflineBanner />
 
