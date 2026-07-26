@@ -1736,9 +1736,9 @@ return () =>
             </div>
 
             {/* Side Info Panels (QRIS + Events + Petugas) */}
-            <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-hidden">
+            <div className="flex-1 flex flex-col gap-3 min-h-0">
 
-              {/* QRIS — selalu tampil jika ada */}
+              {/* QRIS — tampil jika ada */}
               {qrisUrl && (
                 <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-3 border border-[var(--theme-border)] flex items-center gap-3 shadow-sm flex-shrink-0">
                   <div className="w-20 h-20 shrink-0 bg-white p-1 rounded-xl border border-[var(--theme-border)] flex items-center justify-center">
@@ -1755,23 +1755,21 @@ return () =>
               )}
 
               {/* Kegiatan — selalu tampil */}
-              <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-3 border border-[var(--theme-border)] shadow-sm flex flex-col min-h-0 flex-1">
+              <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-3 border border-[var(--theme-border)] shadow-sm flex flex-col flex-1">
                 <span className="text-xs font-bold text-[var(--theme-primary)] tracking-wider uppercase mb-2 flex-shrink-0">📅 Agenda Kegiatan</span>
                 {events.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center">
-                    <p className="text-xs text-center text-[var(--theme-text-secondary)]">Belum ada kegiatan</p>
-                  </div>
+                  <p className="text-xs text-center text-[var(--theme-text-secondary)] py-2">Belum ada kegiatan</p>
                 ) : (
-                  <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1">
+                  <div className="flex flex-col gap-2">
                     {events.slice(0, 3).map((ev) => (
                       <div key={ev.id} className="bg-[var(--theme-background)]/50 p-2.5 rounded-xl border border-[var(--theme-border)]/50">
                         <h4 className="text-sm font-bold text-[var(--theme-text-primary)] truncate">{ev.title}</h4>
                         <div className="flex justify-between items-center text-xs text-[var(--theme-text-secondary)] mt-1">
                           <span className="truncate">{ev.speaker || "Umum"}</span>
-                          <span className="flex-shrink-0 ml-2 font-medium">{ev.event_time || ""}</span>
+                          {ev.event_time && <span className="flex-shrink-0 ml-2 font-medium">{ev.event_time}</span>}
                         </div>
                         <span className="text-[10px] text-[var(--theme-text-secondary)] mt-0.5 block">
-                          {new Date(ev.event_date + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                          {formatIndonesianDateWithDay(ev.event_date)}
                         </span>
                       </div>
                     ))}
@@ -1780,20 +1778,20 @@ return () =>
               </div>
 
               {/* Petugas Hari Ini */}
-              <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-3 border border-[var(--theme-border)] shadow-sm flex flex-col min-h-0 flex-shrink-0">
+              <div className="bg-[var(--theme-surface)]/80 backdrop-blur-sm rounded-2xl p-3 border border-[var(--theme-border)] shadow-sm flex flex-col flex-shrink-0">
                 <span className="text-xs font-bold text-[var(--theme-primary)] tracking-wider uppercase mb-2">👥 Petugas Hari Ini</span>
-                <div className="flex flex-col gap-1.5">
-                  {todayOfficers.length === 0 ? (
-                    <p className="text-xs text-center text-[var(--theme-text-secondary)] py-1">Belum ada jadwal petugas</p>
-                  ) : (
-                    todayOfficers.slice(0, 3).map((o, i) => (
+                {todayOfficers.length === 0 ? (
+                  <p className="text-xs text-center text-[var(--theme-text-secondary)] py-1">Belum ada jadwal petugas</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {todayOfficers.slice(0, 3).map((o, i) => (
                       <div key={i} className="flex justify-between items-center bg-[var(--theme-background)]/50 px-3 py-1.5 rounded-xl border border-[var(--theme-border)]/30">
                         <span className="text-xs font-bold text-[var(--theme-time-accent,#059669)] capitalize">{o.role}</span>
                         <span className="text-xs font-semibold text-[var(--theme-text-primary)] truncate max-w-[140px]">{o.name}</span>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
             </div>
