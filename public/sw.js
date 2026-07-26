@@ -10,7 +10,7 @@
  * Cache names are versioned so old caches are cleaned on SW update.
  */
 
-const SW_VERSION = "v6";
+const SW_VERSION = "v7";
 const STATIC_CACHE  = `smartmasjid-static-${SW_VERSION}`;
 const DYNAMIC_CACHE = `smartmasjid-dynamic-${SW_VERSION}`;
 const API_CACHE     = `smartmasjid-api-${SW_VERSION}`;

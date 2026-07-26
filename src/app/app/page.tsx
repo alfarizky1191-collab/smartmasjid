@@ -122,12 +122,17 @@ export default function AppHomePage() {
     }
     // Mainkan audio silent untuk "warm up" elemen audio di iOS
     if (audioRef.current) {
+      audioRef.current.muted = true;
       audioRef.current.volume = 0;
       audioRef.current.play().then(() => {
         audioRef.current!.pause();
         audioRef.current!.currentTime = 0;
+        // Setelah warm-up berhasil, unmute agar adzan berbunyi keras
+        audioRef.current!.muted = false;
         audioRef.current!.volume = 1;
-      }).catch(() => {});
+      }).catch(() => {
+        // Jika warm-up gagal, tetap tandai unlocked agar banner hilang
+      });
     }
     setAudioUnlocked(true);
   }, [audioUnlocked]);
@@ -225,6 +230,7 @@ export default function AppHomePage() {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
             audioRef.current.src = p.audio;
+            audioRef.current.muted = false;
             audioRef.current.volume = 1;
             audioRef.current.play().catch(() => {});
           }
@@ -578,9 +584,9 @@ export default function AppHomePage() {
         </div>
       )}
 
-      {/* Hidden audio */}
+      {/* Hidden audio — muted attr diperlukan agar iOS mengizinkan warm-up play() sebelum interaksi */}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-      <audio ref={audioRef} src="/audio/adzan.mp3" aria-hidden="true" />
+      <audio ref={audioRef} src="/audio/adzan.mp3" aria-hidden="true" muted playsInline />
 
       <div className="h-24" aria-hidden="true" />
     </div>

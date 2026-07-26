@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * Pull-to-refresh wrapper for SmartMasjid Mobile.
- * Works on touch devices with native-feeling threshold.
- * Does NOT break scroll on non-touch browsers.
+ * Pull-to-refresh wrapper — bekerja di window scroll (bukan overflow div).
+ * Mendeteksi pull saat window.scrollY === 0, sesuai dengan layout
+ * SmartMasjid Mobile yang scroll di window level.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
-const THRESHOLD = 72;   // px of overscroll needed to trigger
-const MAX_PULL  = 110;  // px max rubber-band distance
+const THRESHOLD = 80;   // px pull yang dibutuhkan untuk trigger
+const MAX_PULL  = 120;  // px max rubber-band
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -23,18 +23,20 @@ export default function PullToRefresh({
   children,
   disabled = false,
 }: PullToRefreshProps) {
-  const [pullY, setPullY]         = useState(0);
+  const [pullY, setPullY]           = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const startYRef  = useRef(0);
-  const pullingRef = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+
+  const startYRef    = useRef(0);
+  const pullingRef   = useRef(false);
+  const pullYRef     = useRef(0);   // mirror state ke ref supaya touchend bisa baca nilai terkini
+
+  // Sync state ke ref
+  useEffect(() => { pullYRef.current = pullY; }, [pullY]);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (disabled || refreshing) return;
-    const el = containerRef.current;
-    if (!el) return;
-    // Only trigger pull when already scrolled to top
-    if (el.scrollTop > 4) return;
+    // Hanya aktifkan pull saat halaman di posisi paling atas
+    if (window.scrollY > 4) return;
     startYRef.current = e.touches[0].clientY;
     pullingRef.current = true;
   }, [disabled, refreshing]);
@@ -42,82 +44,90 @@ export default function PullToRefresh({
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!pullingRef.current || disabled || refreshing) return;
     const delta = e.touches[0].clientY - startYRef.current;
-    if (delta <= 0) { setPullY(0); return; }
-    // Rubber-band: slow down past threshold
-    const rubberBand = Math.min(MAX_PULL, delta * (1 - delta / (MAX_PULL * 2)));
-    setPullY(Math.max(0, rubberBand));
-    if (delta > 4) {
-      e.preventDefault();   // prevent scroll when pulling
+    if (delta <= 0) {
+      setPullY(0);
+      return;
     }
+    // Hanya cegah scroll default saat sedang pull-down
+    if (window.scrollY <= 0 && delta > 0) {
+      e.preventDefault();
+    }
+    // Rubber-band damping
+    const rubberBand = Math.min(MAX_PULL, delta * (1 - delta / (MAX_PULL * 2.5)));
+    setPullY(Math.max(0, rubberBand));
   }, [disabled, refreshing]);
 
   const handleTouchEnd = useCallback(async () => {
     if (!pullingRef.current) return;
     pullingRef.current = false;
 
-    if (pullY >= THRESHOLD) {
+    if (pullYRef.current >= THRESHOLD) {
       setRefreshing(true);
       setPullY(THRESHOLD);
       try {
         await onRefresh();
       } finally {
         setRefreshing(false);
+        setPullY(0);
       }
+    } else {
+      setPullY(0);
     }
-    setPullY(0);
-  }, [pullY, onRefresh]);
+  }, [onRefresh]);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    el.addEventListener("touchstart", handleTouchStart, { passive: true });
-    el.addEventListener("touchmove",  handleTouchMove,  { passive: false });
-    el.addEventListener("touchend",   handleTouchEnd,   { passive: true });
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    document.addEventListener("touchmove",  handleTouchMove,  { passive: false });
+    document.addEventListener("touchend",   handleTouchEnd,   { passive: true });
     return () => {
-      el.removeEventListener("touchstart", handleTouchStart);
-      el.removeEventListener("touchmove",  handleTouchMove);
-      el.removeEventListener("touchend",   handleTouchEnd);
+      document.removeEventListener("touchstart", handleTouchStart);
+      document.removeEventListener("touchmove",  handleTouchMove);
+      document.removeEventListener("touchend",   handleTouchEnd);
     };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  const indicatorVisible = pullY > 0 || refreshing;
-  const spinnerRotate    = Math.min(360, (pullY / THRESHOLD) * 360);
-  const triggered        = pullY >= THRESHOLD;
+  const indicatorH  = refreshing ? THRESHOLD : pullY;
+  const spinDeg     = Math.min(360, (pullY / THRESHOLD) * 360);
+  const triggered   = pullY >= THRESHOLD;
 
   return (
-    <div ref={containerRef} className="relative overflow-y-auto h-full">
-      {/* Pull indicator */}
+    <div className="relative">
+      {/* Pull indicator — fixed di atas, tidak ikut scroll */}
       <div
-        className="absolute left-0 right-0 flex justify-center z-10 pointer-events-none overflow-hidden transition-all duration-200"
+        className="fixed top-0 left-0 right-0 flex justify-center z-50 pointer-events-none"
         style={{
-          top: 0,
-          height: indicatorVisible ? pullY || (refreshing ? THRESHOLD : 0) : 0,
-          opacity: indicatorVisible ? 1 : 0,
+          height: indicatorH > 0 ? indicatorH : 0,
+          overflow: "hidden",
+          transition: pullingRef.current ? "none" : "height 0.25s ease",
         }}
         aria-hidden="true"
       >
         <div
           className={[
-            "mt-3 w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-200 shadow-lg",
+            "mt-3 w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-200 shadow-xl",
             triggered || refreshing
-              ? "bg-emerald-500 border-emerald-400 text-black"
-              : "bg-slate-800 border-slate-600 text-slate-400",
+              ? "bg-emerald-500 border-emerald-400 text-slate-950"
+              : "border-emerald-500/40 text-emerald-400",
           ].join(" ")}
+          style={!triggered && !refreshing ? {
+            background: "rgba(16,185,129,0.15)",
+            backdropFilter: "blur(12px)",
+          } : undefined}
         >
           <RefreshCw
-            size={18}
+            size={20}
             strokeWidth={2.5}
-            className={refreshing ? "animate-spin" : ""}
-            style={!refreshing ? { transform: `rotate(${spinnerRotate}deg)` } : undefined}
+            className={refreshing ? "animate-spin" : "transition-transform duration-100"}
+            style={!refreshing ? { transform: `rotate(${spinDeg}deg)` } : undefined}
           />
         </div>
       </div>
 
-      {/* Content — shifts down while pulling */}
+      {/* Content — tekan ke bawah saat pulling */}
       <div
         style={{
           transform: `translateY(${pullY}px)`,
-          transition: pullingRef.current ? "none" : "transform 0.25s ease",
+          transition: pullingRef.current ? "none" : "transform 0.25s cubic-bezier(0.22,1,0.36,1)",
         }}
       >
         {children}
