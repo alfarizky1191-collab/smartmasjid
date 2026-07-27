@@ -104,11 +104,19 @@ export default function AppHomePage() {
 
   // audioUnlocked: true setelah user pernah tap halaman ini.
   // Di HP (iOS/Android), autoplay audio hanya diizinkan setelah interaksi user.
-  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  // Persist di sessionStorage agar tidak reset saat user navigasi balik ke halaman ini.
+  const [audioUnlocked, setAudioUnlocked] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("sm_audio_unlocked") === "1";
+  });
+  const audioUnlockedRef = useRef(audioUnlocked);
 
   // Unlock audio context saat user pertama kali tap/klik halaman
   const unlockAudio = useCallback(() => {
-    if (audioUnlocked) return;
+    if (audioUnlockedRef.current) return;
+    audioUnlockedRef.current = true;
+    sessionStorage.setItem("sm_audio_unlocked", "1");
+    setAudioUnlocked(true);
     // Coba resume / buat AudioContext agar browser tahu ada interaksi
     try {
       if (!audioCtxRef.current) {
@@ -118,24 +126,24 @@ export default function AppHomePage() {
         audioCtxRef.current.resume();
       }
     } catch {
-      // AudioContext tidak tersedia — tidak masalah, tetap set unlocked
+      // AudioContext tidak tersedia — tidak masalah
     }
-    // Mainkan audio silent untuk "warm up" elemen audio di iOS
-    if (audioRef.current) {
-      audioRef.current.muted = true;
-      audioRef.current.volume = 0;
-      audioRef.current.play().then(() => {
-        audioRef.current!.pause();
-        audioRef.current!.currentTime = 0;
-        // Setelah warm-up berhasil, unmute agar adzan berbunyi keras
-        audioRef.current!.muted = false;
-        audioRef.current!.volume = 1;
+    // Mainkan audio silent untuk "warm up" elemen audio di iOS Safari
+    const el = audioRef.current;
+    if (el) {
+      el.muted = true;
+      el.volume = 0;
+      el.play().then(() => {
+        el.pause();
+        el.currentTime = 0;
+        el.muted = false;
+        el.volume = 1;
       }).catch(() => {
-        // Jika warm-up gagal, tetap tandai unlocked agar banner hilang
+        el.muted = false;
+        el.volume = 1;
       });
     }
-    setAudioUnlocked(true);
-  }, [audioUnlocked]);
+  }, []);
 
   // Deteksi Notification API setelah mount — lebih lax daripada push.isSupported
   useEffect(() => {

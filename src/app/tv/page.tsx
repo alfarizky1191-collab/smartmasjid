@@ -18,6 +18,24 @@ const LOCATION_FALLBACK = "Lokasi belum diatur";
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const VAPID_PUBLIC_KEY =
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+  "BIE1ipi2UxbLc2G9JRgIu4JqtPY10iyBikgVj2Gox_miNRxVR6iu3Z8Unq6Y65SZAl7Z4gd7QHfG6oRTPpX6PmY";
+
+/** Konversi VAPID base64url → Uint8Array untuk PushManager.subscribe() */
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
+  const cleaned = base64String.trim().replace(/[\n\r\0]/g, "");
+  const padding = "=".repeat((4 - (cleaned.length % 4)) % 4);
+  const base64 = (cleaned + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const buffer = new ArrayBuffer(rawData.length);
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < rawData.length; i++) {
+    bytes[i] = rawData.charCodeAt(i);
+  }
+  return bytes;
+}
+
 const trimText = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 
@@ -219,7 +237,10 @@ export default function TVPage() {
   useState(false);
 
 const [isIqomah, setIsIqomah] =
-  useState(false);  
+  useState(false);
+
+  const [audioUnlocked, setAudioUnlocked] =
+    useState(false);
 
   const [isFriday, setIsFriday] =
     useState(false);
@@ -275,6 +296,126 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
 
   const triggeredRef =
     useRef<string | null>(null);
+
+  const audioUnlockedRef = useRef<boolean>(false);
+
+  // Ref untuk mosqueId agar bisa diakses dari callback tanpa stale closure
+  const mosqueIdRef = useRef<string | null>(null);
+  useEffect(() => { mosqueIdRef.current = mosqueId; }, [mosqueId]);
+
+  /**
+   * Daftarkan Service Worker dan subscribe push notification untuk masjid ini.
+   * Dipanggil satu kali setelah user tap overlay (butuh gesture untuk izin notifikasi).
+   */
+  const registerPushSubscription = useCallback(async (idForMosque: string) => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+    try {
+      // 1. Daftarkan / ambil SW yang sudah ada
+      let reg = await navigator.serviceWorker.getRegistration("/");
+      if (!reg) {
+        reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+        // Tunggu SW aktif
+        await new Promise<void>((resolve) => setTimeout(resolve, 800));
+      }
+
+      // 2. Cek apakah sudah ada subscription
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) return; // sudah terdaftar, tidak perlu ulang
+
+      // 3. Minta izin notifikasi (sudah di dalam gesture tap, jadi aman)
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return;
+
+      // 4. Subscribe ke push server dengan VAPID key
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+
+      const subJson = sub.toJSON();
+
+      // 5. Simpan subscription ke Supabase lewat API route
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mosque_id: idForMosque,
+          subscription: {
+            endpoint: subJson.endpoint,
+            keys: {
+              p256dh: subJson.keys?.p256dh ?? "",
+              auth: subJson.keys?.auth ?? "",
+            },
+          },
+        }),
+      });
+    } catch (err) {
+      // Jangan crash UI, cukup log
+      console.warn("[TV push] Gagal daftarkan push subscription:", err);
+    }
+  }, []);
+
+  /**
+   * Kirim push notification ke semua subscriber masjid ini lewat server.
+   * Dipanggil saat adzan tiba sehingga HP yang sleep pun mendapat notifikasi.
+   */
+  const sendPushAdzan = useCallback(async (prayerName: string) => {
+    const id = mosqueIdRef.current;
+    if (!id) return;
+    try {
+      await fetch("/api/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mosque_id: id,
+          title: `Adzan ${prayerName} 🕌`,
+          body: "Waktu sholat telah tiba. Segera bersiap untuk sholat berjamaah.",
+          icon: "/icons/icon-192.png",
+          url: window.location.href,
+          tag: `adzan-${prayerName}-${new Date().toISOString().slice(0, 16)}`,
+        }),
+      });
+    } catch (err) {
+      console.warn("[TV push] Gagal kirim push adzan:", err);
+    }
+  }, []);
+
+  const unlockAudio = useCallback(() => {
+    if (audioUnlockedRef.current) return;
+
+    // Minta izin notifikasi saat user tap (butuh gesture user)
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    // Daftarkan push subscription untuk masjid ini (butuh gesture user)
+    // Jalankan async di background, jangan block unlock audio
+    if (mosqueIdRef.current) {
+      registerPushSubscription(mosqueIdRef.current);
+    }
+
+    // Sentuh kedua elemen audio agar browser izinkan play otomatis nanti
+    const unlockPromises = [audioRef.current, alarmRef.current].map((el) => {
+      if (!el) return Promise.resolve();
+      el.muted = true;
+      return el.play()
+        .then(() => {
+          el.pause();
+          el.currentTime = 0;
+          el.muted = false;
+        })
+        .catch(() => {
+          el.muted = false;
+        });
+    });
+
+    Promise.all(unlockPromises).then(() => {
+      audioUnlockedRef.current = true;
+      setAudioUnlocked(true);
+    });
+  }, [registerPushSubscription]);
 
   const refreshPrayerTimes =
     useCallback(async (cityValue: unknown) => {
@@ -1204,25 +1345,46 @@ return () =>
 
             setIqomahCountdown(currentMosque?.iqomah_duration || 300);
 
-            // Gunakan audioRef yang sudah ada (src sudah diset di <audio> tag)
-            // Tapi update src kalau beda (misal subuh)
-            if (audioRef.current) {
-              audioRef.current.src = prayer.audio;
-              audioRef.current.volume = 1;
-              audioRef.current.currentTime = 0;
-              audioRef.current.play().catch((err) => {
-                console.error("Gagal memutar adzan:", err);
-              });
+            // Kirim Web Push ke semua subscriber (termasuk HP yang sedang sleep)
+            sendPushAdzan(prayer.name);
 
-              audioRef.current.onended = () => {
-                // Audio adzan selesai → mulai iqomah tapi TETAP di overlay
-                // (showAdzan tetap true selama iqomah, baru false setelah iqomah selesai)
-                setIsAdzanPlaying(false);
-                isAdzanPlayingRef.current = false;
-                setIsIqomah(true);
-                isIqomahRef.current = true;
-                setIqomahCountdown(mosqueRef.current?.iqomah_duration || 300);
-              };
+            // Kirim Web Notification (bekerja saat browser aktif di foreground/background)
+            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+              try {
+                new Notification(`Adzan ${prayer.name}`, {
+                  body: "Waktu sholat telah tiba. Segera bersiap untuk sholat berjamaah.",
+                  icon: "/icon-192x192.png",
+                  tag: key, // cegah notif duplikat untuk waktu sholat yang sama
+                  requireInteraction: false,
+                });
+              } catch {
+                // Notification tidak didukung di browser ini, abaikan
+              }
+            }
+
+            // Play audio adzan — hanya jika sudah di-unlock oleh user gesture
+            if (audioRef.current) {
+              if (!audioUnlockedRef.current) {
+                // Audio belum di-unlock (user belum tap overlay), skip play
+                // showAdzan overlay tetap tampil agar user sadar sudah masuk waktu sholat
+                console.warn("Audio belum di-unlock, skip play adzan:", prayer.name);
+              } else {
+                audioRef.current.src = prayer.audio;
+                audioRef.current.volume = 1;
+                audioRef.current.currentTime = 0;
+                audioRef.current.play().catch((err) => {
+                  console.error("Gagal memutar adzan:", err);
+                });
+
+                audioRef.current.onended = () => {
+                  // Audio adzan selesai → mulai iqomah tapi TETAP di overlay
+                  setIsAdzanPlaying(false);
+                  isAdzanPlayingRef.current = false;
+                  setIsIqomah(true);
+                  isIqomahRef.current = true;
+                  setIqomahCountdown(mosqueRef.current?.iqomah_duration || 300);
+                };
+              }
             }
 
             break;
@@ -1236,7 +1398,7 @@ return () =>
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [prayerTimes]);
+  }, [prayerTimes, sendPushAdzan]);
 
   // =========================
   // IQOMAH
@@ -1869,6 +2031,28 @@ return () =>
         100% { transform: translateX(-100%); }
       }
     `}</style>
+
+    {/* ── Audio Unlock Overlay ── */}
+    {!audioUnlocked && (
+      <div
+        onClick={unlockAudio}
+        className="fixed inset-0 z-[9999] flex flex-col items-center justify-center cursor-pointer select-none"
+        style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(4px)" }}
+      >
+        <div className="flex flex-col items-center gap-4 text-center px-8">
+          <div className="text-6xl animate-pulse">🕌</div>
+          <p className="text-white text-3xl font-bold tracking-wide">
+            Tap untuk mengaktifkan layar
+          </p>
+          <p className="text-white/60 text-lg">
+            Sentuh layar agar adzan dapat diputar otomatis
+          </p>
+          <p className="text-white/40 text-base mt-1">
+            🔔 Izin notifikasi akan diminta agar HP bisa mendapat peringatan adzan
+          </p>
+        </div>
+      </div>
+    )}
 
     </TVThemeProvider>
   );
