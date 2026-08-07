@@ -229,11 +229,44 @@ export default function RoyalOttomanLayout({
             )}
           </div>
 
-          {/* Time right */}
-          <div className="flex flex-col items-end">
-            <span className="text-amber-400 text-sm tracking-widest uppercase">Waktu Saat Ini</span>
-            <span className="text-amber-100 text-4xl font-bold font-mono tracking-wider">{time}</span>
-            <span className="text-amber-400/70 text-xs">WIB</span>
+          {/* Right: time + control buttons */}
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex flex-col items-end">
+              <span className="text-amber-400 text-sm tracking-widest uppercase">Waktu Saat Ini</span>
+              <span className="text-amber-100 text-4xl font-bold font-mono tracking-wider">{time}</span>
+              <span className="text-amber-400/70 text-xs">WIB</span>
+            </div>
+            {/* Control buttons */}
+            <div className="flex flex-wrap gap-1.5 justify-end">
+              <button
+                onClick={goFullscreen}
+                className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer"
+                style={{ background: "rgba(212,168,67,0.2)", color: "#fcd34d", border: "1px solid rgba(212,168,67,0.3)" }}
+              >
+                ⛶ Fullscreen
+              </button>
+              <button
+                onClick={() => setAutoAdzanEnabled(!autoAdzanEnabled)}
+                className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer"
+                style={{
+                  background: autoAdzanEnabled ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)",
+                  color: autoAdzanEnabled ? "#6ee7b7" : "#fca5a5",
+                  border: `1px solid ${autoAdzanEnabled ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
+                }}
+              >
+                {autoAdzanEnabled ? "🔔 Adzan ON" : "🔕 Adzan OFF"}
+              </button>
+              {onTestAdzan && (
+                <button onClick={onTestAdzan} className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-blue-900/40 text-blue-300 border border-blue-700/30 cursor-pointer">
+                  ▶ Test Adzan
+                </button>
+              )}
+              {onTestAlarm && (
+                <button onClick={onTestAlarm} className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-yellow-900/40 text-yellow-300 border border-yellow-700/30 cursor-pointer">
+                  ▶ Test Alarm
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -242,8 +275,8 @@ export default function RoyalOttomanLayout({
         {/* Jumat banner */}
         {isFriday && (
           <div className="bg-amber-500/20 border border-amber-400/40 rounded-xl px-6 py-2 text-center flex-shrink-0">
-            <p className="text-amber-300 text-xl font-bold tracking-widest">
-              🕌 JUMAT MUBARAK — Perbanyak Sholawat &amp; Datang Lebih Awal
+            <p className="text-amber-300 text-lg font-bold tracking-wide leading-tight">
+              🕌 JUMAT MUBARAK — Perbanyak Sholawat, Rapikan Shaf, &amp; Datang Lebih Awal
             </p>
           </div>
         )}
@@ -253,7 +286,7 @@ export default function RoyalOttomanLayout({
 
           {/* ── LEFT PANEL: Jadwal Sholat ── */}
           <div
-            className="w-[22%] flex flex-col gap-2 rounded-2xl p-4 relative overflow-hidden min-h-0 flex-shrink-0"
+            className="w-[26%] flex flex-col gap-2 rounded-2xl p-4 relative overflow-hidden min-h-0 flex-shrink-0"
             style={{
               background: "linear-gradient(160deg, rgba(11,26,46,0.95) 0%, rgba(20,83,45,0.85) 100%)",
               border: "1px solid rgba(212,168,67,0.3)",
@@ -295,13 +328,13 @@ export default function RoyalOttomanLayout({
             {/* Slide image */}
             <div
               className="relative rounded-2xl overflow-hidden flex-1 min-h-0"
-              style={{ border: "1px solid rgba(212,168,67,0.3)" }}
+              style={{ border: "1px solid rgba(212,168,67,0.3)", background: "#000" }}
             >
               {slides.length > 0 ? (
                 <img
                   src={slides[currentSlide]?.image_url}
                   alt="Slide"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               ) : (
                 <div
@@ -360,7 +393,7 @@ export default function RoyalOttomanLayout({
 
           {/* ── RIGHT PANEL: Pengumuman + QRIS + Events ── */}
           <div
-            className="w-[24%] flex flex-col gap-3 rounded-2xl p-4 relative overflow-hidden min-h-0 flex-shrink-0"
+            className="w-[26%] flex flex-col gap-3 rounded-2xl p-4 relative overflow-hidden min-h-0 flex-shrink-0"
             style={{
               background: "linear-gradient(160deg, rgba(11,26,46,0.95) 0%, rgba(74,20,6,0.3) 100%)",
               border: "1px solid rgba(212,168,67,0.3)",
@@ -430,37 +463,6 @@ export default function RoyalOttomanLayout({
               </div>
             )}
 
-            {/* Control buttons at bottom */}
-            <div className="mt-auto flex flex-wrap gap-1.5 pt-2 flex-shrink-0" style={{ borderTop: "1px solid rgba(212,168,67,0.2)" }}>
-              <button
-                onClick={goFullscreen}
-                className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer"
-                style={{ background: "rgba(212,168,67,0.2)", color: "#fcd34d", border: "1px solid rgba(212,168,67,0.3)" }}
-              >
-                ⛶ Fullscreen
-              </button>
-              <button
-                onClick={() => setAutoAdzanEnabled(!autoAdzanEnabled)}
-                className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer"
-                style={{
-                  background: autoAdzanEnabled ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)",
-                  color: autoAdzanEnabled ? "#6ee7b7" : "#fca5a5",
-                  border: `1px solid ${autoAdzanEnabled ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
-                }}
-              >
-                {autoAdzanEnabled ? "🔔 Adzan ON" : "🔕 Adzan OFF"}
-              </button>
-              {onTestAdzan && (
-                <button onClick={onTestAdzan} className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-blue-900/40 text-blue-300 border border-blue-700/30 cursor-pointer">
-                  ▶ Test Adzan
-                </button>
-              )}
-              {onTestAlarm && (
-                <button onClick={onTestAlarm} className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-yellow-900/40 text-yellow-300 border border-yellow-700/30 cursor-pointer">
-                  ▶ Test Alarm
-                </button>
-              )}
-            </div>
           </div>
 
         </div>
