@@ -22,11 +22,10 @@ export default function LoginPage() {
     password?: string;
   }>({});
 
-  // Load saved email if remember me was checked
+  // Load remember me preference — hanya simpan flag, bukan email
   useEffect(() => {
-    const savedEmail = localStorage.getItem("smartmasjid_saved_email");
-    if (savedEmail) {
-      setEmail(savedEmail);
+    const remembered = localStorage.getItem("smartmasjid_remember_me");
+    if (remembered === "true") {
       setRememberMe(true);
     }
   }, []);
@@ -90,12 +89,14 @@ export default function LoginPage() {
       // Show success state
       setSuccess(true);
 
-      // Save email if remember me is checked
+      // Remember me — simpan flag saja, tidak simpan email
       if (rememberMe) {
-        localStorage.setItem("smartmasjid_saved_email", email);
+        localStorage.setItem("smartmasjid_remember_me", "true");
       } else {
-        localStorage.removeItem("smartmasjid_saved_email");
+        localStorage.removeItem("smartmasjid_remember_me");
       }
+      // Hapus key lama jika masih ada (migrasi dari versi sebelumnya)
+      localStorage.removeItem("smartmasjid_saved_email");
 
       // Log audit action
       await logAuditAction({ action: "Login", module: "Auth" });

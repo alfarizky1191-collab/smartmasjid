@@ -1,11 +1,25 @@
 import type { NextConfig } from "next";
 
+// Ambil hostname dari env var agar tidak hardcoded
+// Fallback ke parse URL jika NEXT_PUBLIC_SUPABASE_URL sudah diset
+function getSupabaseHostname(): string {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) {
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL environment variable is required");
+  }
+  try {
+    return new URL(url).hostname;
+  } catch {
+    throw new Error(`NEXT_PUBLIC_SUPABASE_URL is not a valid URL: ${url}`);
+  }
+}
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "ndwzafvikiosrdhbhxbk.supabase.co",
+        hostname: getSupabaseHostname(),
       },
     ],
   },

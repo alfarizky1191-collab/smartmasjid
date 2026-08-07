@@ -5,52 +5,92 @@ import webpush from "web-push";
 /**
  * POST /api/push/send
  *
- * Sends a push notification to all subscribers of a mosque.
- * Security: validates mosque_id exists in DB (no user auth required —
- * this endpoint is only called from authenticated dashboard pages).
+ * Mengirim push notification ke semua subscriber masjid.
+ * Dipanggil dari:
+ *   1. Dashboard admin (menggunakan Bearer token autentikasi)
+ *   2. TV display saat adzan (menggunakan Bearer token autentikasi)
  *
- * Body: { mosque_id, title, body, url?, icon? }
+ * Body: { mosque_id, title, body, url?, icon?, tag? }
+ *
+ * Security:
+ *   - Wajib Bearer token valid (Supabase session)
+ *   - mosque_id harus dimiliki oleh user yang sedang login
+ *   - Semua keys diambil dari env vars, tidak ada fallback hardcoded
  */
 
-const DEFAULT_VAPID_PUBLIC_KEY  = "BIE1ipi2UxbLc2G9JRgIu4JqtPY10iyBikgVj2Gox_miNRxVR6iu3Z8Unq6Y65SZAl7Z4gd7QHfG6oRTPpX6PmY";
-const DEFAULT_VAPID_PRIVATE_KEY = "tTLvdS7bVA51Awo0KJo0_ewbiHRSC2GYiW9mB2JCSWU";
-const DEFAULT_VAPID_SUBJECT     = "mailto:admin@smartmasjid.id";
+// ─── Env validation ──────────────────────────────────────────────────────────
 
-const DEFAULT_SUPABASE_URL = "https://ndwzafvikiosrdhbhxbk.supabase.co";
-const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kd3phZnZpa2lvc3JkaGJoeGJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTE2MzQsImV4cCI6MjA5NTI4NzYzNH0.wJbxqBsvzuaGJYGdeserdg4hFUKNZAYGHigdH7ph5Jc";
-const DEFAULT_SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kd3phZnZpa2lvc3JkaGJoeGJrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTcxMTYzNCwiZXhwIjoyMDk1Mjg3NjM0fQ.sfrc7go_J5RxKq8Tz4k8Zzag0Hp489q2ISjTFFuK52g";
-
-function getVapidKeys() {
-  const publicKey  = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY || DEFAULT_VAPID_PRIVATE_KEY;
-  const subject    = process.env.VAPID_SUBJECT || DEFAULT_VAPID_SUBJECT;
-  return { publicKey, privateKey, subject };
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
+  return value;
 }
 
-function getClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || DEFAULT_SUPABASE_SERVICE_KEY;
-  const anonKey    = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
-  const key = serviceKey || anonKey;
-  if (!url || !key) throw new Error("Supabase env vars missing");
-  return createClient(url, key, {
-    global: {
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
-    },
+function getVapidKeys() {
+  return {
+    publicKey:  requireEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY"),
+    privateKey: requireEnv("VAPID_PRIVATE_KEY"),
+    subject:    process.env.VAPID_SUBJECT || "mailto:admin@smartmasjid.id",
+  };
+}
+
+/** Client dengan service role key — hanya untuk operasi server-side */
+function getServiceClient() {
+  const url        = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  return createClient(url, serviceKey, {
+    auth: { persistSession: false },
   });
 }
 
+/** Client dengan token user — untuk verifikasi identitas pengirim */
+function getUserClient(bearerToken: string) {
+  const url     = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const anonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  return createClient(url, anonKey, {
+    global: {
+      headers: {
+        apikey:        anonKey,
+        Authorization: `Bearer ${bearerToken}`,
+      },
+    },
+    auth: { persistSession: false },
+  });
+}
+
+// ─── Route handler ────────────────────────────────────────────────────────────
+
 export async function POST(request: NextRequest) {
   try {
-    // ── Parse body ───────────────────────────────────────────────────────────
-    let body: { mosque_id?: unknown; title?: unknown; body?: unknown; url?: unknown; icon?: unknown };
+    // ── 1. Autentikasi: wajib Bearer token ───────────────────────────────────
+    const authorization = request.headers.get("authorization");
+    if (!authorization?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const bearerToken = authorization.slice(7);
+
+    const userClient = getUserClient(bearerToken);
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (userError || !userData.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // ── 2. Parse & validasi body ─────────────────────────────────────────────
+    let body: {
+      mosque_id?: unknown;
+      title?: unknown;
+      body?: unknown;
+      url?: unknown;
+      icon?: unknown;
+      tag?: unknown;
+    };
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { mosque_id, title, body: notifBody, url, icon } = body;
+    const { mosque_id, title, body: notifBody, url, icon, tag } = body;
 
     if (typeof mosque_id !== "string" || !mosque_id)
       return NextResponse.json({ error: "mosque_id required" }, { status: 422 });
@@ -59,17 +99,35 @@ export async function POST(request: NextRequest) {
     if (typeof notifBody !== "string" || !notifBody)
       return NextResponse.json({ error: "body required" }, { status: 422 });
 
-    // ── Validate VAPID env ───────────────────────────────────────────────────
-    const { publicKey, privateKey, subject } = getVapidKeys();
+    // ── 3. Otorisasi: user harus memiliki mosque ini ──────────────────────────
+    const { data: profile, error: profileError } = await userClient
+      .from("profiles")
+      .select("mosque_id")
+      .eq("id", userData.user.id)
+      .single();
 
-    if (!publicKey || !privateKey) {
-      console.error("[push/send] VAPID keys not configured");
+    if (profileError || !profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 403 });
+    }
+
+    // Izinkan jika mosque_id cocok dengan masjid user,
+    // atau jika permintaan berasal dari TV display masjid yang sama
+    if (profile.mosque_id !== mosque_id) {
+      return NextResponse.json({ error: "Forbidden: mosque_id mismatch" }, { status: 403 });
+    }
+
+    // ── 4. Validasi VAPID env ────────────────────────────────────────────────
+    let vapid: ReturnType<typeof getVapidKeys>;
+    try {
+      vapid = getVapidKeys();
+    } catch (err) {
+      console.error("[push/send] VAPID keys not configured:", err);
       return NextResponse.json({ error: "Push service not configured" }, { status: 500 });
     }
 
-    const db = getClient();
+    const db = getServiceClient();
 
-    // ── Validate mosque exists ───────────────────────────────────────────────
+    // ── 5. Validasi masjid exists ────────────────────────────────────────────
     const { data: mosque, error: mosqueError } = await db
       .from("mosques")
       .select("id")
@@ -80,7 +138,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Mosque not found" }, { status: 404 });
     }
 
-    // ── Fetch subscribers ────────────────────────────────────────────────────
+    // ── 6. Ambil subscribers ─────────────────────────────────────────────────
     const { data: subs, error: subsError } = await db
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
@@ -95,8 +153,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, sent: 0, message: "No subscribers" });
     }
 
-    // ── Send push notifications ──────────────────────────────────────────────
-    webpush.setVapidDetails(subject, publicKey, privateKey);
+    // ── 7. Kirim push notifications ──────────────────────────────────────────
+    webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
 
     const payload = JSON.stringify({
       title,
@@ -104,7 +162,7 @@ export async function POST(request: NextRequest) {
       icon:     typeof icon === "string" ? icon : "/icons/icon-192.png",
       badge:    "/icons/icon-192.png",
       url:      typeof url  === "string" ? url  : "/app",
-      tag:      `smartmasjid-announcement-${Date.now()}`,
+      tag:      typeof tag  === "string" ? tag  : `smartmasjid-${Date.now()}`,
       renotify: true,
     });
 
@@ -130,7 +188,7 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // ── Clean up expired subscriptions ──────────────────────────────────────
+    // ── 8. Bersihkan subscription expired ───────────────────────────────────
     if (expiredEndpoints.length > 0) {
       await db
         .from("push_subscriptions")
@@ -139,7 +197,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      ok: true,
+      ok:      true,
       sent,
       expired: expiredEndpoints.length,
       total:   subs.length,

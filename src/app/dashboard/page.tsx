@@ -14,7 +14,6 @@ export default function DashboardPage() {
   const [email, setEmail] = useState("");
   const [mosqueId, setMosqueId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   const [mosqueName, setMosqueName] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -50,10 +49,6 @@ export default function DashboardPage() {
       }
 
       setEmail(user.email || "");
-
-      // Save token for push notification API calls
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) setAccessToken(session.access_token);
 
       const { data: profileData } = await supabase
         .from("profiles")
@@ -214,22 +209,24 @@ export default function DashboardPage() {
       // Kirim push notification ke subscriber masjid
       try {
         if (mosqueId) {
-          const headers: Record<string, string> = {
-            "Content-Type": "application/json",
-          };
-          if (accessToken) {
-            headers["Authorization"] = `Bearer ${accessToken}`;
+          // Selalu ambil fresh token agar tidak expired
+          const { data: { session: freshSession } } = await supabase.auth.getSession();
+          const token = freshSession?.access_token;
+          if (token) {
+            await fetch("/api/push/send", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                mosque_id: mosqueId,
+                title: "📢 Pengumuman Baru",
+                body: announcement,
+                url: "/app/info",
+              }),
+            });
           }
-          await fetch("/api/push/send", {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              mosque_id: mosqueId,
-              title: "📢 Pengumuman Baru",
-              body: announcement,
-              url: "/app/info",
-            }),
-          });
         }
       } catch {
         // Push gagal tidak boleh block simpan pengumuman

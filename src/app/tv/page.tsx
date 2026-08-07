@@ -365,16 +365,14 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
     const id = mosqueIdRef.current;
     if (!id) return;
     try {
-      await fetch("/api/push/send", {
+      // Gunakan endpoint /api/push/adzan khusus untuk TV display (tanpa auth user)
+      // Endpoint ini sudah diproteksi dengan rate limiting + validasi masjid
+      await fetch("/api/push/adzan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mosque_id: id,
-          title: `Adzan ${prayerName} 🕌`,
-          body: "Waktu sholat telah tiba. Segera bersiap untuk sholat berjamaah.",
-          icon: "/icons/icon-192.png",
-          url: window.location.href,
-          tag: `adzan-${prayerName}-${new Date().toISOString().slice(0, 16)}`,
+          mosque_id:   id,
+          prayer_name: prayerName,
         }),
       });
     } catch (err) {
