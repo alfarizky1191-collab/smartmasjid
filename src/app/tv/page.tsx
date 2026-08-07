@@ -382,6 +382,57 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
     }
   }, []);
 
+  /**
+   * Coba unlock audio diam-diam menggunakan Web Audio API.
+   * Tidak butuh gesture user — browser modern mengizinkan AudioContext
+   * resume() tanpa gesture, dan setelah AudioContext aktif, HTMLAudioElement
+   * juga ikut terbuka izin autoplay-nya.
+   */
+  const tryAutoUnlock = useCallback(async () => {
+    if (audioUnlockedRef.current) return;
+
+    try {
+      // Buat AudioContext singkat untuk "warming up" izin audio browser
+      const AudioContextClass =
+        window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        const ctx = new AudioContextClass();
+        // Buat buffer kosong & mainkan — ini membuka izin autoplay
+        const buf = ctx.createBuffer(1, 1, 22050);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+        await ctx.resume();
+        src.stop();
+        await ctx.close();
+      }
+
+      // Setelah AudioContext berhasil, sentuh elemen audio HTML
+      const unlockPromises = [audioRef.current, alarmRef.current].map((el) => {
+        if (!el) return Promise.resolve();
+        el.muted = true;
+        return el.play()
+          .then(() => {
+            el.pause();
+            el.currentTime = 0;
+            el.muted = false;
+          })
+          .catch(() => {
+            el.muted = false;
+          });
+      });
+
+      await Promise.all(unlockPromises);
+
+      audioUnlockedRef.current = true;
+      setAudioUnlocked(true);
+    } catch {
+      // Auto-unlock gagal, biarkan overlay kecil tampil untuk fallback
+    }
+  }, []);
+
+  /** Dipanggil saat user tap overlay fallback (jika auto-unlock gagal) */
   const unlockAudio = useCallback(() => {
     if (audioUnlockedRef.current) return;
 
@@ -391,7 +442,6 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
     }
 
     // Daftarkan push subscription untuk masjid ini (butuh gesture user)
-    // Jalankan async di background, jangan block unlock audio
     if (mosqueIdRef.current) {
       registerPushSubscription(mosqueIdRef.current);
     }
@@ -416,6 +466,15 @@ const [todayOfficers, setTodayOfficers] = useState<{role: string; name: string}[
       setAudioUnlocked(true);
     });
   }, [registerPushSubscription]);
+
+  // Coba unlock audio secara otomatis saat halaman dimuat
+  useEffect(() => {
+    // Tunda sedikit agar elemen audio sudah mount dan browser siap
+    const timer = setTimeout(() => {
+      tryAutoUnlock();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [tryAutoUnlock]);
 
   const refreshPrayerTimes =
     useCallback(async (cityValue: unknown) => {
@@ -1362,29 +1421,23 @@ return () =>
               }
             }
 
-            // Play audio adzan — hanya jika sudah di-unlock oleh user gesture
+            // Play audio adzan
             if (audioRef.current) {
-              if (!audioUnlockedRef.current) {
-                // Audio belum di-unlock (user belum tap overlay), skip play
-                // showAdzan overlay tetap tampil agar user sadar sudah masuk waktu sholat
-                console.warn("Audio belum di-unlock, skip play adzan:", prayer.name);
-              } else {
-                audioRef.current.src = prayer.audio;
-                audioRef.current.volume = 1;
-                audioRef.current.currentTime = 0;
-                audioRef.current.play().catch((err) => {
-                  console.error("Gagal memutar adzan:", err);
-                });
+              audioRef.current.src = prayer.audio;
+              audioRef.current.volume = 1;
+              audioRef.current.currentTime = 0;
+              audioRef.current.play().catch((err) => {
+                console.error("Gagal memutar adzan:", err);
+              });
 
-                audioRef.current.onended = () => {
-                  // Audio adzan selesai → mulai iqomah tapi TETAP di overlay
-                  setIsAdzanPlaying(false);
-                  isAdzanPlayingRef.current = false;
-                  setIsIqomah(true);
-                  isIqomahRef.current = true;
-                  setIqomahCountdown(mosqueRef.current?.iqomah_duration || 300);
-                };
-              }
+              audioRef.current.onended = () => {
+                // Audio adzan selesai → mulai iqomah tapi TETAP di overlay
+                setIsAdzanPlaying(false);
+                isAdzanPlayingRef.current = false;
+                setIsIqomah(true);
+                isIqomahRef.current = true;
+                setIqomahCountdown(mosqueRef.current?.iqomah_duration || 300);
+              };
             }
 
             break;
@@ -2032,27 +2085,6 @@ return () =>
       }
     `}</style>
 
-    {/* ── Audio Unlock Overlay ── */}
-    {!audioUnlocked && (
-      <div
-        onClick={unlockAudio}
-        className="fixed inset-0 z-[9999] flex flex-col items-center justify-center cursor-pointer select-none"
-        style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(4px)" }}
-      >
-        <div className="flex flex-col items-center gap-4 text-center px-8">
-          <div className="text-6xl animate-pulse">🕌</div>
-          <p className="text-white text-3xl font-bold tracking-wide">
-            Tap untuk mengaktifkan layar
-          </p>
-          <p className="text-white/60 text-lg">
-            Sentuh layar agar adzan dapat diputar otomatis
-          </p>
-          <p className="text-white/40 text-base mt-1">
-            🔔 Izin notifikasi akan diminta agar HP bisa mendapat peringatan adzan
-          </p>
-        </div>
-      </div>
-    )}
 
     </TVThemeProvider>
   );
