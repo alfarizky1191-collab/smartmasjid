@@ -354,22 +354,28 @@ export default function OnboardingPage() {
 
       // 3. Insert mosque record owned by the current user
       const slug = generateSlug(form.name, form.city);
+      
+      // Build insert payload with proper field mapping
+      const insertPayload: Record<string, unknown> = {
+        owner_id: userData.user.id,
+        name: form.name.trim(),
+        slug,
+        province: form.province.trim() || null,
+        city: form.city.trim() || null,
+        address: form.address.trim() || null,
+        whatsapp: form.whatsapp.trim() || null,
+        logo_url: logoUrl,
+      };
+      
+      // Add optional fields
+      if (form.district.trim()) insertPayload.district = form.district.trim();
+      if (form.postalCode.trim()) insertPayload.postal_code = form.postalCode.trim();
+      if (form.latitude) insertPayload.latitude = parseFloat(form.latitude);
+      if (form.longitude) insertPayload.longitude = parseFloat(form.longitude);
+      
       const { data: mosqueData, error: mosqueError } = await supabase
         .from("mosques")
-        .insert({
-          owner_id: userData.user.id,
-          name: form.name.trim(),
-          slug,
-          province: form.province.trim() || null,
-          city: form.city.trim() || null,
-          address: [form.district, form.address, form.postalCode]
-            .filter(Boolean)
-            .join(", ") || null,
-          whatsapp: form.whatsapp.trim() || null,
-          logo_url: logoUrl,
-          ...(form.latitude ? { latitude: parseFloat(form.latitude) } : {}),
-          ...(form.longitude ? { longitude: parseFloat(form.longitude) } : {}),
-        })
+        .insert(insertPayload)
         .select("id")
         .single();
 

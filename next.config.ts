@@ -15,13 +15,20 @@ function getSupabaseHostname(): string {
 }
 
 const nextConfig: NextConfig = {
+  compress: true,
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 86400, // 24 jam
     remotePatterns: [
       {
         protocol: "https",
         hostname: getSupabaseHostname(),
       },
     ],
+  },
+  // Kurangi ukuran bundle
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
   },
 };
 

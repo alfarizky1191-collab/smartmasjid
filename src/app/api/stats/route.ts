@@ -37,8 +37,8 @@ async function countPublicTable(
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const dynamic = "force-static";
+export const revalidate = 300; // revalidate every 5 minutes
 
 export async function GET(): Promise<NextResponse<PlatformStats>> {
   const supabase = createServerClient();
