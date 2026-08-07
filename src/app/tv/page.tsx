@@ -1884,12 +1884,12 @@ return () =>
           {/* LEFT COLUMN: Media & Announcements (col-span-8) */}
           <div className="col-span-8 flex flex-col gap-4 min-h-0">
             {/* Slider */}
-            <div className="flex-1 relative rounded-2xl overflow-hidden border border-[var(--theme-border)]/50 shadow-md">
+            <div className="flex-1 relative rounded-2xl overflow-hidden border border-[var(--theme-border)]/50 shadow-md" style={{ background: "#000" }}>
               {slides.length > 0 ? (
                 <img
                   src={slides[currentSlide]?.image_url}
                   alt="Slide"
-                  className="w-full h-full object-cover animate-page-scale"
+                  className="w-full h-full object-contain animate-page-scale"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-[var(--theme-surface)]">
@@ -2012,13 +2012,13 @@ return () =>
         </div>
 
         {/* BOTTOM ROW: Prayer Times */}
-        <div className="flex-shrink-0 grid grid-cols-7 gap-3 relative z-10">
+        <div className="flex-shrink-0 grid grid-cols-7 gap-2 relative z-10">
           {prayerGrid.map((item) => {
             const isNext = item.name === nextPrayer;
             return (
               <div
                 key={item.name}
-                className={`rounded-2xl p-3.5 text-center border transition-all duration-300 ${
+                className={`rounded-2xl p-2.5 text-center border transition-all duration-300 ${
                   isNext
                     ? "border-[var(--theme-primary)] shadow-[0_0_15px_rgba(16,185,129,0.15)] scale-[1.03] z-10"
                     : "border-[var(--theme-border)]/60 shadow-sm"
