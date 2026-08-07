@@ -132,6 +132,7 @@ export default function SetupPage() {
         .insert({
           name: formData.mosqueName.trim(),
           slug,
+          owner_id: userId,
           ...(formData.city.trim() ? { city: formData.city.trim() } : {}),
           ...(formData.province.trim() ? { province: formData.province.trim() } : {}),
         })
