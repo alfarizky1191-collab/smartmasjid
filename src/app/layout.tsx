@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-
-const BASE_URL = "https://smartmasjid.id";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(BASE_URL),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "SmartMasjid — Platform Digital Masjid Modern Indonesia",
     template: "%s | SmartMasjid",
@@ -24,7 +23,7 @@ export const metadata: Metadata = {
     "pengumuman masjid",
     "software masjid",
   ],
-  authors: [{ name: "SmartMasjid", url: BASE_URL }],
+  authors: [{ name: "SmartMasjid", url: SITE_URL }],
   creator: "SmartMasjid",
   publisher: "SmartMasjid",
   robots: {
@@ -35,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: BASE_URL,
+    url: SITE_URL,
     siteName: "SmartMasjid",
     title: "SmartMasjid — Platform Digital Masjid Modern Indonesia",
     description:
@@ -57,8 +56,8 @@ export const metadata: Metadata = {
     images: ["/og-image.png"],
   },
   alternates: {
-    canonical: BASE_URL,
-    languages: { "id-ID": BASE_URL },
+    canonical: SITE_URL,
+    languages: { "id-ID": SITE_URL },
   },
   icons: {
     icon: [
@@ -76,7 +75,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: "SmartMasjid",
-  url: BASE_URL,
+  url: SITE_URL,
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web, Android, iOS",
   description:
@@ -89,7 +88,7 @@ const jsonLd = {
   publisher: {
     "@type": "Organization",
     name: "SmartMasjid",
-    url: BASE_URL,
+    url: SITE_URL,
   },
 };
 
@@ -101,10 +100,8 @@ export default function RootLayout({
   return (
     <html lang="id" className="h-full antialiased scroll-smooth">
       <head>
-        {/* Preconnect ke Supabase untuk mempercepat API dan image requests */}
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""} />
         <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""} />
-        {/* Preconnect Google Fonts jika digunakan di masa depan */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <script
