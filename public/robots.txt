@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://smartmasjid.biz.id/sitemap.xml
