@@ -1,15 +1,11 @@
 import Link from "next/link";
 import { Scale, ArrowLeft } from "lucide-react";
 
-// ─── Page metadata ────────────────────────────────────────────────────────────
-
 export const metadata = {
   title: "Syarat & Ketentuan – SmartMasjid",
   description:
     "Syarat dan ketentuan penggunaan platform SmartMasjid untuk pengelolaan masjid digital.",
 };
-
-// ─── Section data ─────────────────────────────────────────────────────────────
 
 const SECTIONS = [
   {
@@ -129,24 +125,18 @@ const SECTIONS = [
     content: [
       "Jika Anda memiliki pertanyaan mengenai syarat dan ketentuan ini, silakan hubungi kami:",
       "• Email: support@smartmasjid.id",
-      "• Website: smartmasjid.id",
+      "• Website: smartmasjid.biz.id",
       "Tim kami akan merespons dalam 1–3 hari kerja.",
     ],
   },
 ];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function TermsPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-emerald-50/60 to-white">
-      {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 backdrop-blur-sm bg-white/90">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-emerald-600 transition-colors font-medium"
-          >
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-emerald-600 transition-colors font-medium">
             <ArrowLeft className="w-4 h-4" />
             Kembali
           </Link>
@@ -155,80 +145,44 @@ export default function TermsPage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
-        {/* Hero */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-emerald-100 rounded-2xl mb-4">
             <Scale className="w-7 h-7 text-emerald-600" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">
-            Syarat &amp; Ketentuan
-          </h1>
-          <p className="text-gray-500 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Harap baca syarat dan ketentuan berikut sebelum menggunakan layanan SmartMasjid.
-          </p>
-          <p className="text-xs text-gray-400 mt-3">
-            Terakhir diperbarui: 6 Juli 2026
-          </p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">Syarat &amp; Ketentuan</h1>
+          <p className="text-gray-500 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">Harap baca syarat dan ketentuan berikut sebelum menggunakan layanan SmartMasjid.</p>
+          <p className="text-xs text-gray-400 mt-3">Terakhir diperbarui: 6 Juli 2026</p>
         </div>
 
-        {/* Table of contents */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm shadow-gray-100 p-5 sm:p-6 mb-8">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
-            Daftar Isi
-          </h2>
+          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Daftar Isi</h2>
           <ol className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {SECTIONS.map((s) => (
-              <li key={s.id}>
-                <a
-                  href={`#${s.id}`}
-                  className="text-sm text-emerald-700 hover:text-emerald-600 hover:underline underline-offset-2 transition-colors"
-                >
-                  {s.title}
-                </a>
-              </li>
+              <li key={s.id}><a href={`#${s.id}`} className="text-sm text-emerald-700 hover:text-emerald-600 hover:underline underline-offset-2 transition-colors">{s.title}</a></li>
             ))}
           </ol>
         </div>
 
-        {/* Content card */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm shadow-gray-100 overflow-hidden">
           <div className="divide-y divide-gray-50">
             {SECTIONS.map((section) => (
               <section key={section.id} id={section.id} className="p-6 sm:p-8">
                 <h2 className="text-lg font-bold text-gray-900 mb-4">{section.title}</h2>
                 <div className="flex flex-col gap-3">
-                  {section.content.map((para, i) => (
-                    <p key={i} className="text-sm text-gray-600 leading-relaxed">
-                      {para}
-                    </p>
-                  ))}
+                  {section.content.map((para, i) => <p key={i} className="text-sm text-gray-600 leading-relaxed">{para}</p>)}
                 </div>
               </section>
             ))}
           </div>
         </div>
 
-        {/* Related link */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
-            Lihat juga:{" "}
-            <Link
-              href="/privacy"
-              className="text-emerald-600 font-semibold hover:underline underline-offset-2 transition-colors"
-            >
-              Kebijakan Privasi
-            </Link>
-          </p>
-        </div>
+        <div className="mt-6 text-center"><p className="text-sm text-gray-500">Lihat juga:{" "}<Link href="/privacy" className="text-emerald-600 font-semibold hover:underline underline-offset-2 transition-colors">Kebijakan Privasi</Link></p></div>
       </div>
 
-      {/* Footer */}
       <footer className="border-t border-gray-100 bg-white mt-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 text-center">
           <p className="text-sm font-semibold text-gray-700">© 2026 SmartMasjid</p>
-          <p className="text-xs text-gray-400 mt-1">
-            Platform Digital Manajemen Masjid Indonesia
-          </p>
+          <p className="text-xs text-gray-400 mt-1">Platform Digital Manajemen Masjid Indonesia</p>
         </div>
       </footer>
     </main>
