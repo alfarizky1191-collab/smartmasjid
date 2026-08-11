@@ -13,6 +13,7 @@ type Props = {
 };
 
 type MosqueSeo = {
+  id?: string;
   name: string;
   slug: string;
   city: string | null;
@@ -24,7 +25,7 @@ type MosqueSeo = {
 async function getMosqueForSeo(slug: string): Promise<MosqueSeo | null> {
   const { data, error } = await supabase
     .from("mosques")
-    .select("name, slug, city, province, address, logo_url")
+    .select("id, name, slug, city, province, address, logo_url")
     .eq("slug", slug)
     .single();
 
@@ -53,7 +54,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locationText = location || "Indonesia";
   const title = `${mosque.name} — Jadwal Sholat & Informasi Masjid | SmartMasjid`;
   const description = `Jadwal sholat, profil, lokasi, pengumuman, kegiatan, dan informasi ${mosque.name} di ${locationText}. Lihat informasi masjid di SmartMasjid.`;
-  const image = mosque.logo_url || `${SITE_URL}/og-image.png`;
+  // Use a generated 1200×630 preview so every mosque gets its own share image.
+  const image = `${SITE_URL}/api/og/${encodedSlug}`;
 
   return {
     title,
@@ -86,12 +88,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       url,
-      images: [
-        {
-          url: image,
-          alt: `${mosque.name} — SmartMasjid`,
-        },
-      ],
+      images: [{ url: image, width: 1200, height: 630, alt: `${mosque.name} — SmartMasjid` }],
     },
     twitter: {
       card: "summary_large_image",
@@ -102,6 +99,44 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function MosqueSlugLayout({ children }: Props) {
-  return children;
+export default async function MosqueSlugLayout({ children, params }: Props) {
+  const { slug } = await params;
+  const mosque = await getMosqueForSeo(slug);
+
+  // Mosque-specific structured data. This is rendered server-side so crawlers can
+  // discover the entity without depending on client-side JavaScript.
+  const jsonLd = mosque
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Mosque",
+        name: mosque.name,
+        url: `${SITE_URL}/m/${encodeURIComponent(mosque.slug)}`,
+        description: `Informasi ${mosque.name}, jadwal sholat, lokasi, pengumuman, dan kegiatan masjid di SmartMasjid.`,
+        image: `${SITE_URL}/api/og/${encodeURIComponent(mosque.slug)}`,
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: mosque.address || undefined,
+          addressLocality: mosque.city || undefined,
+          addressRegion: mosque.province || undefined,
+          addressCountry: "ID",
+        },
+        isPartOf: {
+          "@type": "WebSite",
+          name: "SmartMasjid",
+          url: SITE_URL,
+        },
+      }
+    : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      {children}
+    </>
+  );
 }
