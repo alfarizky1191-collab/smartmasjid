@@ -26,7 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const mosqueRoutes: MetadataRoute.Sitemap = (mosques ?? []).map(({ slug }) => ({
-    url: `${SITE_URL}/masjid/${encodeURIComponent(slug)}`,
+    url: `${SITE_URL}/m/${encodeURIComponent(slug)}`,
     changeFrequency: "daily",
     priority: 0.8,
   }));
