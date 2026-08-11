@@ -29,15 +29,16 @@ export default function ForgotPasswordPage() {
         redirectTo: `${SITE_URL}/reset-password`,
       });
 
-      // Keep the response generic so the page does not reveal whether an account exists.
       if (resetError) {
-        setError("We could not send the reset email right now. Please try again.");
+        console.error("Supabase password reset error:", resetError);
+        setError(resetError.message || "Unable to send the reset email. Please try again.");
         return;
       }
 
       setSent(true);
-    } catch {
-      setError("We could not send the reset email right now. Please try again.");
+    } catch (err) {
+      console.error("Password reset request error:", err);
+      setError(err instanceof Error ? err.message : "Unable to send the reset email. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -66,10 +67,7 @@ export default function ForgotPasswordPage() {
               <p className="text-slate-600 leading-relaxed">
                 If an account uses that email address, we sent instructions to reset the password.
               </p>
-              <Link
-                href="/login"
-                className="mt-6 inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-colors"
-              >
+              <Link href="/login" className="mt-6 inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-colors">
                 <ArrowLeft className="w-4 h-4" />
                 Back to Login
               </Link>
@@ -77,9 +75,7 @@ export default function ForgotPasswordPage() {
           ) : (
             <>
               <h2 className="text-2xl font-bold mb-2">Forgot password?</h2>
-              <p className="text-slate-600 mb-7">
-                Enter your admin email and we&apos;ll send you a secure password reset link.
-              </p>
+              <p className="text-slate-600 mb-7">Enter your admin email and we&apos;ll send you a secure password reset link.</p>
 
               {error && (
                 <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 flex gap-3">
@@ -90,47 +86,19 @@ export default function ForgotPasswordPage() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold mb-3">
-                    Email Address
-                  </label>
+                  <label htmlFor="email" className="block text-sm font-semibold mb-3">Email Address</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                    <input
-                      id="email"
-                      type="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="admin@example.com"
-                      disabled={loading}
-                      className="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-200 bg-slate-50 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all disabled:opacity-50"
-                    />
+                    <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com" disabled={loading} className="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-slate-200 bg-slate-50 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all disabled:opacity-50" />
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full px-6 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-400 text-white font-bold transition-colors flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader className="w-5 h-5 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="w-5 h-5" />
-                      Send Reset Link
-                    </>
-                  )}
+                <button type="submit" disabled={loading} className="w-full px-6 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-400 text-white font-bold transition-colors flex items-center justify-center gap-2">
+                  {loading ? <><Loader className="w-5 h-5 animate-spin" />Sending...</> : <><Mail className="w-5 h-5" />Send Reset Link</>}
                 </button>
               </form>
 
-              <Link
-                href="/login"
-                className="mt-6 inline-flex items-center justify-center gap-2 w-full text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-              >
+              <Link href="/login" className="mt-6 inline-flex items-center justify-center gap-2 w-full text-sm font-semibold text-emerald-600 hover:text-emerald-700">
                 <ArrowLeft className="w-4 h-4" />
                 Back to Login
               </Link>
