@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { SITE_URL } from "@/lib/site";
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "G-P3MKE83ZK7";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -104,6 +107,18 @@ export default function RootLayout({
         <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){window.dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}');
+          `}
+        </Script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
