@@ -42,23 +42,99 @@ async function getMosque(slug: string): Promise<MosquePublic | null> {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const mosque = await getMosque(slug);
-  if (!mosque) return { title: "Masjid Tidak Ditemukan | SmartMasjid" };
+  if (!mosque) {
+    return {
+      title: "Masjid Tidak Ditemukan | SmartMasjid",
+      robots: { index: false, follow: false },
+    };
+  }
 
-  const description = `${mosque.address} — ${mosque.city}, ${mosque.province}`;
-  const url = `${SITE_URL}/masjid/${slug}`;
+  const url = `${SITE_URL}/masjid/${encodeURIComponent(mosque.slug)}`;
+  const title = `${mosque.name} — Jadwal Sholat & Informasi Masjid | SmartMasjid`;
+  const description = `Jadwal sholat, profil, lokasi, pengumuman, kegiatan, dan informasi ${mosque.name} di ${mosque.city}, ${mosque.province}. Lihat informasi masjid di SmartMasjid.`;
+  const image = mosque.logo_url || `${SITE_URL}/og-image.png`;
 
   return {
-    title: `${mosque.name} | SmartMasjid`,
+    title,
     description,
+    keywords: [
+      mosque.name,
+      `jadwal sholat ${mosque.name}`,
+      `masjid ${mosque.city}`,
+      `masjid ${mosque.province}`,
+      "SmartMasjid",
+    ],
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true },
+    },
     openGraph: {
-      title: mosque.name,
+      type: "website",
+      locale: "id_ID",
+      siteName: "SmartMasjid",
+      title,
       description,
       url,
-      images: mosque.logo_url ? [mosque.logo_url] : [],
+      images: [
+        {
+          url: image,
+          alt: `${mosque.name} — SmartMasjid`,
+        },
+      ],
     },
-    twitter: { card: "summary", title: mosque.name, description },
-    alternates: { canonical: url },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
+    alternates: {
+      canonical: url,
+      languages: { "id-ID": url },
+    },
   };
+}
+
+function MosqueJsonLd({ mosque }: { mosque: MosquePublic }) {
+  const url = `${SITE_URL}/masjid/${encodeURIComponent(mosque.slug)}`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Mosque",
+    name: mosque.name,
+    url,
+    description: `Profil dan informasi ${mosque.name} di ${mosque.city}, ${mosque.province}.`,
+    image: mosque.logo_url || `${SITE_URL}/og-image.png`,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: mosque.address || undefined,
+      addressLocality: mosque.city || undefined,
+      addressRegion: mosque.province || undefined,
+      addressCountry: "ID",
+    },
+    ...(mosque.latitude != null && mosque.longitude != null
+      ? {
+          geo: {
+            "@type": "GeoCoordinates",
+            latitude: mosque.latitude,
+            longitude: mosque.longitude,
+          },
+        }
+      : {}),
+    isPartOf: {
+      "@type": "WebSite",
+      name: "SmartMasjid",
+      url: SITE_URL,
+    },
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
 }
 
 export default async function MosquePortalPage({ params }: Props) {
@@ -114,6 +190,7 @@ export default async function MosquePortalPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <MosqueJsonLd mosque={mosque} />
       <Hero mosque={mosque} />
       <QuickMenu />
       <PrayerSection city={mosque.city} />
