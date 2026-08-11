@@ -21,6 +21,7 @@ import DonationSection from "@/components/public/DonationSection";
 import SlideCarousel from "@/components/public/SlideCarousel";
 import LocationSection from "@/components/public/LocationSection";
 import Footer from "@/components/public/Footer";
+import { SITE_URL } from "@/lib/site";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!mosque) return { title: "Masjid Tidak Ditemukan | SmartMasjid" };
 
   const description = `${mosque.address} — ${mosque.city}, ${mosque.province}`;
-  const url = `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://smartmasjid.id"}/masjid/${slug}`;
+  const url = `${SITE_URL}/masjid/${slug}`;
 
   return {
     title: `${mosque.name} | SmartMasjid`,
